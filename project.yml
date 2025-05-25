@@ -1,0 +1,44 @@
+parameters: {}
+environment: {}
+
+packages:
+    - name: etl
+      shared: false
+      environment: {}
+      parameters: {}
+      annotations: {}
+      functions:
+        - name: hello
+          binary: false
+          main: ""
+          runtime: python:default
+          web: true
+          webSecure: false
+          parameters: {}
+          environment: {}
+          annotations: {}
+          limits: {}
+
+          # schedule the function to run every minute
+          triggers:
+            - name: trigger-etl-every-minute
+              sourceType: scheduler
+              sourceDetails:
+                cron: "* * * * *"  # every minute
+
+    - name: inference
+      shared: false
+      environment: {}
+      parameters: {}
+      annotations: {}
+      functions:
+        - name: hello
+          binary: false
+          main: ""
+          runtime: python:default
+          web: true
+          webSecure: false
+          parameters: {}
+          environment: {}
+          annotations: {}
+          limits: {}
