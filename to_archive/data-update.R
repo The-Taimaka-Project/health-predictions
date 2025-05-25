@@ -1,3 +1,10 @@
+"""
+This script will not work as-is. It is intended to be migrated to a Python script.
+Currently, we are editing it to remove sections that we don't think will be needed
+at inference time.
+"""
+
+
 library(pool)
 library(dbplyr)
 library(tidyverse)
@@ -44,7 +51,7 @@ library(ruODK)
 ru_setup(
   svc = 'https://taimaka-internal.org:7443/v1/projects/9/forms/admit.scv',
   un = 'jennifer@taimaka.org',
-  pw = 'deutsch6TH', 
+  pw = '<redacted!>', 
   verbose = TRUE
 )
 
@@ -56,208 +63,7 @@ admit_raw <- odata_submission_get(
   parse=FALSE
 ) %>% odata_submission_rectangle(names_sep=NULL)
 
-### Assignment of PIDs ###
-
-# Edit in OTP data only, typically reflecting a PID later assigned to a child presenting with an emergency sign: 
-admit_raw <- admit_raw %>%
-  mutate(id = gsub("^uuid:", "", id)) %>% 
-  mutate(pid = if_else(is.na(pid) & name == "Badariya hashimu " & todate == '2023-05-31', "23-0211", pid), # cross-checked address
-         pid = if_else(is.na(pid) & name == "Al amin sidi ali " & todate == '2023-05-31', "23-0210", pid), # cross-checked address
-         pid = if_else(is.na(pid) & name == "Ibrahim sadiq" & todate == '2023-05-31', "23-0203", pid), 
-         pid = if_else(is.na(pid) & name == "Abdullazeez Rufai" & todate == '2023-05-31', "23-0212", pid), 
-         pid = if_else(is.na(pid) & name == "Abubakar sunusi " & todate == '2023-05-31', "23-0204", pid), 
-         pid = if_else(is.na(pid) & name == "Farida ali" & todate == '2023-05-31', "23-0205", pid), 
-         pid = if_else(is.na(pid) & name == "Muhammadu Faisal samaila" & todate == '2023-05-31', "23-0206", pid), 
-         pid = if_else(is.na(pid) & name == "Yusuf auwal " & todate == '2023-05-31', "23-0202", pid), 
-         pid = if_else(is.na(pid) & name == "Salma adamu " & todate == '2023-05-31', "23-0201", pid),
-         pid = if_else(is.na(pid) & name == "Hussaini sulaiman " & todate == '2023-06-05', "23-0219", pid), # cross-checked address 
-         pid = if_else(is.na(pid) & name == "Kamaluddeen muhammadu" & todate == '2023-06-08', "23-0281", pid),
-         pid = if_else(is.na(pid) & name == "Muhammad Muhammad " & todate == '2023-07-03', "23-0431", pid),
-         pid = if_else(is.na(pid) & name == "Hafiz sanusi" & todate == '2023-07-04', "23-0295", pid), # cross-checked address and CG name
-         pid = if_else(is.na(pid) & name == "Muhammad abdullahi " & todate == '2023-07-04', "23-0428", pid), # cross-checked address and CG name
-         pid = if_else(is.na(pid) & name == "Marsiya abubakar" & todate == '2023-05-31', "23-0214", pid), # em OTP submission listed CG name in place of child name, leader name in place of settlement
-         pid = if_else(is.na(pid) & name == "Saadatu zahradin" & todate == '2023-06-02', "23-0286", pid), # traced using phone number, not in ITP Google Sheet
-         pid = if_else(is.na(pid) & name == "Abubakar Khalid" & todate == '2023-07-03', "23-0390", pid), # cross-checked address, CG name, phone
-         pid = if_else(is.na(pid) & name == "Nura ayayaji" & todate == '2023-07-05', "23-0429", pid), # cross-checked CG and HoH names, but address does not match
-         pid = if_else(is.na(pid) & name == "Usaina nasiru " & todate == '2023-07-11', "23-0868", pid), # cross-checked CG name and address
-         pid = if_else(is.na(pid) & name == "Shaaban Muhammad " & todate == '2023-07-11', "23-0545", pid), # appears child returned to OTP the next day and was assigned a PID, but didn't go to ITP until the following week
-         pid = if_else(is.na(pid) & name == "Aishatu abdullahi " & todate == '2023-07-12', "23-0435", pid), # cross-checked CG name and address
-         pid = if_else(is.na(pid) & name == "Fatima Abdulhamid " & todate == '2023-09-25', "23-1404", pid), # cross-checked CG and and address
-         pid = if_else(is.na(pid) & name == "Asmau Mohammed " & todate == '2023-10-31', "23-3160", pid), # cross-checked CG name
-         pid = if_else(is.na(pid) & name == "Ibrahim Ibrahim " & todate == '2023-10-03', "23-0870", pid),
-         pid = if_else(is.na(pid) & name == "Aisha Babangida" & todate == '2023-10-26', "23-1420", pid), #cross-checked CG name and child age
-         pid = if_else(is.na(pid) & name == "Balkisu isah " & todate == '2023-11-16', "23-0872", pid), 
-         pid = if_else(is.na(pid) & name == "Yasir lawan" & todate == '2023-11-16', "23-0871", pid),
-         pid = if_else(is.na(pid) & name == "Muhammad abdussalam" & todate == '2024-01-08', "24-0366", pid),
-         pid = if_else(is.na(pid) & name == "Sulaiman Yahaya " & todate == '2023-11-28', "23-3088", pid),
-         pid = if_else(is.na(pid) & name == "Abdullahi Mohammed " & todate == '2023-12-04', "23-1419", pid), # cross-checked CG name and child age
-         pid = if_else(is.na(pid) & name == "Salisu musa" & todate == '2024-01-23', "24-1415", pid),
-         pid = if_else(is.na(pid) & name == "Usman Adamu " & todate == '2024-02-14', "24-0851", pid),
-         pid = if_else(is.na(pid) & name == "Aishatu Bello" & todate == '2024-02-27', "24-0865", pid),
-         pid = if_else(is.na(pid) & name == "Adamu Abdullahi " & todate == '2024-02-27', "24-1063", pid),
-         pid = if_else(is.na(pid) & name == "Basiru Muhammad " & todate == '2024-02-29', "24-0854", pid),
-         pid = if_else(is.na(pid) & name == "Abdulkadir muhd " & todate == '2024-03-11', "24-0853", pid),
-         pid = if_else(is.na(pid) & name == "Ahmadu Muhammad " & todate == '2024-03-14', "24-0858", pid),
-         pid = if_else(is.na(pid) & name == "Zulai Adamu " & todate == '2024-03-18', "24-0861", pid),
-         pid = if_else(is.na(pid) & name == "Habiba Bello" & todate == '2024-03-18', "24-0859", pid),
-         pid = if_else(is.na(pid) & name == "Adamu Ibrahim " & todate == '2024-03-21', "24-0860", pid),
-         pid = if_else(is.na(pid) & name == "Aisha Hussaini" & todate == '2024-04-04', "24-1228", pid),
-         pid = if_else(is.na(pid) & name == "Amina muhammadu " & todate == '2024-04-15', "24-1227", pid),
-         pid = if_else(is.na(pid) & name == "Samaila Muhammadu " & todate == '2024-04-18', "24-1524", pid),
-         pid = if_else(is.na(pid) & name == "Muhammad Musa " & todate == '2024-03-11', "24-1518", pid),
-         pid = if_else(is.na(pid) & name == "Aisha Yusuf " & todate == '2024-05-07', "24-1937", pid),
-         pid = if_else(is.na(pid) & name == "Musa Adamu " & todate == '2024-05-13', "24-1954", pid),
-         pid = if_else(is.na(pid) & name == "hussaina babangida" & todate == '2024-03-18', "24-0980", pid),
-         pid = if_else(is.na(pid) & name == "Abdul mudallab auwal" & todate == '2024-03-25', "24-0981", pid),
-         pid = if_else(is.na(pid) & name == "Ainau ayuba" & todate == '2024-05-06', "24-1606", pid),
-         pid = if_else(is.na(pid) & name == "Habiba Abubakar" & todate == '2024-04-26', "24-1942", pid), # cross-checked CG name and address, but age mismatches
-         pid = if_else(is.na(pid) & name == "Muhd Adamu" & todate == '2024-04-26', "24-1935", pid), # cross-checked with phone number
-         pid = if_else(is.na(pid) & name == "Abdullahi Usman " & todate == '2024-04-29', "24-1938", pid), # cross-checked with phone number
-         pid = if_else(is.na(pid) & name == "Musa Yahaya" & todate == '2024-05-09', "24-1758", pid),
-         pid = if_else(is.na(pid) & name == "Maryama Muhd" & todate == '2024-05-15', "24-1958", pid),
-         pid = if_else(is.na(pid) & name == "Abubakar muhammadu " & todate == '2024-07-05', "24-1607", pid),
-         pid = if_else(is.na(pid) & name == "Muhammad Musa " & todate == '2024-04-22', "24-1518", pid),
-         pid = if_else(is.na(pid) & name == "Amina haruna" & todate == '2024-05-23', "24-1950", pid),
-         pid = if_else(is.na(pid) & name == "Adamu jauro" & todate == '2024-05-27', "24-1956", pid),
-         pid = if_else(is.na(pid) & name == "Muhammad Muhammad " & todate == '2024-06-05', "24-2128", pid),
-         pid = if_else(is.na(pid) & name == "Aisha Abdussalam" & todate == '2024-06-13', "24-1957", pid),
-         pid = if_else(is.na(pid) & name == "Aliyu Abubakar " & todate == '2024-06-19', "24-1944", pid),
-         pid = if_else(is.na(pid) & name == "Saidu Musa" & todate == '2024-06-26', "24-2752", pid),
-         pid = if_else(is.na(pid) & name == "Amina Abdullahi " & todate == '2024-06-27', "24-2751", pid),
-         pid = if_else(is.na(pid) & name == "Hussaina Musa " & todate == '2024-07-01', "24-2756", pid),
-         pid = if_else(is.na(pid) & name == "Maryam Muhammad " & todate == '2024-07-01', "24-2757", pid),
-         pid = if_else(is.na(pid) & name == "Hassana Saidu " & todate == '2024-07-08', "24-2830", pid),
-         pid = if_else(is.na(pid) & name == "Aisha Ahmadu " & todate == '2024-08-14', "24-2761", pid),
-         pid = if_else(is.na(pid) & name == "Abubakar Ibrahim " & todate == '2024-09-10', "24-4137", pid),
-         pid = if_else(is.na(pid) & name == "Hassana Wada " & todate == '2024-09-25', "24-2753", pid),
-         pid = if_else(is.na(pid) & name == "Muhd muhd" & todate == '2024-09-27', "24-4147", pid),
-         pid = if_else(is.na(pid) & name == "Abdullahi Muhd" & todate == '2024-07-22', "24-2763", pid),
-         pid = if_else(is.na(pid) & name == "Hauwa Muhammad " & todate == '2024-09-30', "24-2765", pid),
-         pid = if_else(is.na(pid) & name == "Ali Adamu" & todate == '2023-07-03', "23-9999", pid), # ITP, no PID assigned
-         pid = if_else(is.na(pid) & name == "Muhammad lawanda " & todate == '2023-07-04', "23-9998", pid), # ITP, no PID assigned
-         pid = if_else(is.na(pid) & name == "Laure Adamu " & todate == '2023-07-14', "23-9997", pid), # ITP, no PID assigned
-         pid = if_else(is.na(pid) & name == "Aisha Umaru " & todate == '2024-01-31', "24-9999", pid), # ITP, no PID assigned
-         pid = if_else(is.na(pid) & name == "Zainab Tijjani " & todate == '2024-10-21', "24-9991", pid), # ITP, no PID assigned
-         pid = if_else(is.na(pid) & name == "Habiba Muhd" & todate == '2023-10-02', "23-9996", pid), # NO MATCH - unable to trace child of similar name 
-         pid = if_else(is.na(pid) & name == "Muhammad Muhammad " & todate == '2023-11-20', "23-9995", pid), # NO MATCH - closest possible is 23-3101 - unable to trace child of similar name, location, and date; phone number logged with 3 other CGs, not admitted via ITP 
-         pid = if_else(is.na(pid) & name == "Aisha Muhammad" & todate == '2024-03-25', "24-9997", pid), # NO MATCH - unable to trace child of similar name, location, and date; phone number not logged with any other observations, child of same name but different age enrolled in ITP
-         pid = if_else(is.na(pid) & name == "Fatu Magaji " & todate == '2024-07-17', "24-9996", pid), # NO MATCH - unable to trace w/ name or phone
-         pid = if_else(is.na(pid) & name == "Bello Umar" & todate == '2024-07-19', "24-9995", pid), # NO MATCH - unable to trace; phone links to 24-2126, but seems to be different child
-         pid = if_else(is.na(pid) & name == "Hassan umaru " & todate == '2024-09-09', "24-9994", pid), # NO MATCH - unable to trace; phone does not link
-         pid = if_else(is.na(pid) & name == "Mommy Ibrahim" & todate == '2024-10-17', "24-9993", pid), # NO MATCH - unable to trace; no phone
-         pid = if_else(is.na(pid) & name == "Fatima Rabiu " & todate == '2024-09-02', "24-9992", pid), #  NO MATCH - unable to trace; phone does not link 
-         pid = if_else(is.na(pid) & id == "dc384bb2-3cb8-4ad8-ad3b-9e2e3a8762ff", "24-9989", pid), # ITP, no PID assigned before death
-         pid = if_else(is.na(pid) & id == "9bfd1025-6099-4b44-97f6-908842b38dc7", "24-4831", pid),
-         pid = if_else(is.na(pid) & id == "0c5cc61e-2f05-42d4-8dd1-284cf2d2db62", "24-9988", pid) #  NO MATCH - unable to trace; phone does not link 
-  ) 
-
-### Edit in ITP data only:
-# Maryam Muhd Sangaru - Excluded because age at time was 20 days, referred to SBCU - enrolled as 24-2757 upon reaching age of 1m 
-# Muhd Yahaya (Sangaru) - 24-1953 - for some reason not recorded in ITP sheet
-
-### Construct PIDs in OTP data, ITP data, and current:
-#pid = if_else(is.na(pid) & name == "Ali Adamu" & todate == '2023-07-03', "23-9999", pid), # ITP, no PID assigned
-#pid = if_else(is.na(pid) & name == "Muhammad lawanda " & todate == '2023-07-04', "23-9998", pid), # ITP, no PID assigned
-#pid = if_else(is.na(pid) & name == "Laure Adamu " & todate == '2023-07-14', "23-9997", pid), # ITP, no PID assigned
-#pid = if_else(is.na(pid) & name == "Aisha Umaru " & todate == '2024-01-31', "24-9999", pid), # ITP, no PID assigned
-#pid = if_else(is.na(pid) & name == "Zainab Tijjani " & todate == '2024-10-21', "24-9991", pid),
-
-### Construct PIDs in ITP data and current: 
-# Saifullahi Yahaya - included in Brianna's data 24-9998
-# Abdullahi Ismail - Deba - discharged home from ITP as not from catchment area - 24-9990 
-# Hassan Usman (Kurjale) - No notes in ITP log - 24-0001 --> update on 15/11: this child's PID is 24-1613
-
-### Construct PIDs in OTP data and current: 
-# Set status to default
-# pid = if_else(is.na(pid) & name == "Habiba Muhd" & todate == '2023-10-02', "23-9996", pid), # NO MATCH - unable to trace child of similar name 
-# pid = if_else(is.na(pid) & name == "Muhammad Muhammad " & todate == '2023-11-20', "23-9995", pid), # NO MATCH - closest possible is 23-3101 - unable to trace child of similar name, location, and date; phone number logged with 3 other CGs, not admitted via ITP 
-# pid = if_else(is.na(pid) & name == "Aisha Muhammad" & todate == '2024-03-25', "24-9997", pid), # NO MATCH - unable to trace child of similar name, location, and date; phone number not logged with any other observations, child of same name but different age enrolled in ITP
-# pid = if_else(is.na(pid) & name == "Fatu Magaji " & todate == '2024-07-17', "24-9996", pid), # NO MATCH - unable to trace w/ name or phone
-# pid = if_else(is.na(pid) & name == "Bello Umar" & todate == '2024-07-19', "24-9995", pid), # NO MATCH - unable to trace; phone links to 24-2126, but seems to be different child
-# pid = if_else(is.na(pid) & name == "Hassan umaru " & todate == '2024-09-09', "24-9994", pid), # NO MATCH - unable to trace; phone does not link
-# pid = if_else(is.na(pid) & name == "Mommy Ibrahim" & todate == '2024-10-17', "24-9993", pid), # NO MATCH - unable to trace; no phone
-# pid = if_else(is.na(pid) & name == "Fatima Rabiu " & todate == '2024-09-02', "24-9992", pid), #  NO MATCH - unable to trace; phone does not link 
-
-# Create a dataframe with new observations for CURRENT and join to current 
-add_current <- data.frame(
-  pid = c("23-9999", "23-9998", "23-9997", "24-9999", "24-9991", "24-9998", "24-9990", 
-          "23-9996", "23-9995", "24-9997", "24-9996", "24-9995", "24-9994", "24-9993", "24-9992",
-          "24-9989", "24-9988"),
-  phone = c("701-729-1416", NA, "903-395-7213", "902-236-5364", NA, "803-769-9436", NA,
-            NA, "806-380-3885", "708-720-7492", "706-611-7182", "903-754-3375", "802-670-5817", NA, "901-131-0883",
-            "704-738-1330", "703-379-5483"),
-  b_phoneconsent = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA),
-  langpref = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA),
-  phoneowner = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA),
-  site = c("sangaru", "kuri", "jalingo", "sangaru", "kuri", "kurjale", NA,
-           "sangaru", "sangaru", "sangaru", "sangaru", "sangaru", "sangaru", "sangaru", "jalingo",
-           "kuri", "sangaru"),
-  status = c("dead", "dead", "excluded", "dead", "dead", "default", "excluded", 
-             "default", "default", "default", "default", "default", "default", "default", "default", 
-             "dead", "default"), 
-  status_detail = c(NA, NA, "defect", NA, NA, "final", "other", 
-                    "final", "final", "final", "final", "final", "final", "final", "final",
-                    NA, "returnable"), # returnable will need to be updated next time this is run
-  movement_detail = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA),
-  status_date = as.Date(c("2023-07-05", "2023-07-04", "2023-07-26", "2024-02-02", "2024-10-23", "2024-03-04", "2024-03-13", 
-                          "2023-10-23", "2023-12-11", "2024-03-15", "2024-07-05", "2024-07-05", "2024-10-07", "2024-11-11", "2024-09-30",
-                          "2024-12-05", "2024-12-09")), 
-  nvdate = as.Date(c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)),
-  los = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-  dischqualanthro = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
-
-new_pids <- c("23-9999", "23-9998", "23-9997", "24-9999", "24-9991", "24-9998", "24-9990", 
-              "23-9996", "23-9995", "24-9997", "24-9996", "24-9995", "24-9994", "24-9993", "24-9992", 
-              "24-9989", "24-9988")
-
-emage <- admit_raw %>% 
-  filter(pid %in% new_pids) %>% 
-  select(em_age, pid, todate)
-
-add_current <- add_current %>%
-  left_join(emage, by = 'pid') %>%
-  mutate(
-    em_age = case_when(
-      pid == '24-9998' ~ 2,
-      pid == '24-9990' ~ 10,
-      TRUE ~ em_age
-    ),
-    todate = as.Date(coalesce(
-      case_when(
-        pid == '24-9998' ~ '2024-02-15',
-        pid == '24-9990' ~ '2024-03-04',
-      ), as.character(todate)), 
-      format = "%Y-%m-%d")) %>% 
-  mutate(age = as.integer(em_age + interval(todate, Sys.Date()) %/% months(1))
-  ) %>%
-  select(-em_age, -todate)
-
-current <- bind_rows(current, add_current)
-
-### Create a dataframe with new observations for EXCLUSIONS and join to exclusions 
-add_exclusions <- data.frame(
-  updt_id = c(NA, NA),
-  pid = c("23-9997", "24-9990"),
-  dt = as.Date(c("2023-07-26", "2024-03-13")), 
-  exclusion_type = c("defect", "other"),
-  notes = c("Per ITP, excluded as after receiving acre as a result of cerebral palsy. Excluded without assigning PID; PID 23-9997 assigned retroactively by Jenn during data cleaning.", 
-            "Per ITP, discharged Home as patient is not from catchment area. No PID assigned; PID 24-9990 assigned retroactively by Jenn during data cleaning."),
-  change_timestamp = c(NA, NA))
-
-exclusions <- bind_rows(exclusions, add_exclusions)
-
-### Create a dataframe with new observations for DEATHS and join to deaths
-add_deaths <- data.frame(
-  pid = c("23-9999", "23-9998", "24-9999", "24-9991", "24-9989"),
-  dod = as.Date(c("2023-07-05", "2023-07-04", "2024-02-02", "2024-10-23", "2024-12-05")), 
-  notes = c("Per ITP, patient died on transit to FTH (tertiary facility). Died in ITP care, before PID assigned; PID 23-9999 assigned retroactively by Jenn during data cleaning.", 
-            "Per ITP, patient died on arrival to ITP, before PID was assigned. PID 23-9998 assigned retroactively by Jenn during data cleaning.",
-            "Died in ITP before PID assigned; PID 24-9999 assigned retroactively by Jenn during data cleaning.",
-            "Died in ITP before PID assigned; PID 24-9991 assigned retroactively by Jenn during data cleaning.",
-            "Died in ITP before PID assigned; PID 24-9989 assigned retroactively by Jenn during data cleaning."),
-  change_timestamp = c(NA, NA, NA, NA, NA))
-
-deaths <- bind_rows(deaths, add_deaths)
+### Deleted a bunch of stuff here
 
 # Pull notes on exclusions and deaths into the current df
 current <- current %>% 
@@ -272,207 +78,7 @@ current <- current %>%
   mutate(cleaning_note = ifelse(pid %in% new_pids, 'PID assigned retroactively during data cleaning.', NA)
   )
 
-# Create a dataframe with new observations for ADMIT RAW and join to admit_raw
-add_admit_raw <- data.frame(
-  pid = c("24-9998", "24-9990"),
-  todate = as.Date(c("2024-02-15", "2024-03-04")),
-  site = c("gh_deba", "gh_deba"),
-  site_type = c("itp", "itp"),
-  b_cpalate = c("false", "false"),
-  b_hydrocephalus = c("false", "false"),
-  b_prolap_hernia = c("false", "false"),
-  b_downsynd = c("false", "false"),
-  b_sicklecell = c("false", "false"),
-  b_def_oth = c("false", "false"),
-  b_fract_traum = c("false", "false"),
-  def_pres = c("false", "false"),
-  state = c("gombe", "other"),
-  other_state = c(NA, "unknown"),
-  name = c("Saifullahi Yahaya", "Abdullahi Ismail"),
-  c_sex = c("male", "male"),
-  age = c(2, 10),
-  muac = c(7.2, 10),
-  muac_status = c("sam", "sam"),
-  maln_status = c("sam", "sam"),
-  eref_u6sam = c("true", "false"),
-  ref_overall = c("true", "true"),
-  eff_eref_overall = c("true", NA),
-  eff_ref_overall  = c("true", "true"),
-  q_override_eref = c("false", NA),
-  q_cgaccept_eref = c("true", NA),
-  override_eref = c("false", NA),
-  b_correctadmittype = c("true", "true"),
-  precalc_admit_type_pp = c("New Admission", "New Admission"),
-  admit_type = c("new", "new"),
-  q_override_lref = c(NA, "false"),
-  override_lref = c(NA, "false"),
-  q_cgaccept_lref = c(NA, "true"),
-  eff_lref_overall = c(NA, "true"),
-  cat1_overall = c(NA, "true"),  
-  id = c("fc41d7c0-1803-400b-81da-40d96f747497", "4e0d9d40-e3b5-45db-8584-4b271bbd7dd9"), 
-  additionalnotes = c("Presented in ITP and discharged as stabilized. Not assigned PID b/c the ITP stocked out of admission forms. Pt never returned to OTP and was never assigned a PID. PID 24-9998 assigned retroactively by Jenn during data cleaning.",
-                      "Presented in ITP. Treated, then excluded due to being from outsite the catchment area. Not assigned PID by ITP staff. PID 24-9990 assigned retroactively by Jenn during data cleaning."))
-
-admit_raw <- admit_raw %>% 
-  mutate(todate = as.Date(todate), 
-         age = as.integer(age),
-         muac = as.numeric(muac)) 
-
-admit_raw <- bind_rows(admit_raw, add_admit_raw)
-
-imci_emergency <- admit_raw %>% 
-  filter(imci_emergency_otp == 'true')
-
-imci_pids <- imci_emergency$pid
-
-admit_raw <- admit_raw %>% 
-  mutate(cleaning_note = ifelse(pid %in% new_pids, 'PID assigned retroactively during data cleaning.', NA),
-         cleaning_note = ifelse(pid %in% imci_pids & imci_emergency_otp == 'true', "Presented as emergency case at OTP and referred to ITP with no PID assigned; linked with PID retroactively during data cleaning.", NA)
-  )
-
-# Create a dataframe with new observations for ADMIT PROCESSED and join to admit_processed
-vector_of_names <- names(admit)
-
-add_admit_processed <- admit_raw %>% 
-  filter(pid %in% new_pids) %>% 
-  mutate(md_starttime = as.Date(start_time),
-         md_endtime = as.Date(end_time),
-         autosite = glbsite,
-         calcdate = as.Date(todate),
-         staffmember = final_staffmember,
-         staffmember_other = otherstaff,
-         c_imci_emergency = imci_emergency_list,
-         imci_emergency_other = spec_imci_em_other,
-         b_referred_emergency = as.logical(imci_emergency_otp),
-         b_presented_emergency = as.logical(imci_emergency_itp),
-         b_fracture_trauma = as.logical(b_fract_traum),
-         b_defect_present = as.logical(def_pres),
-         b_prevenr = as.logical(b_prevenr),
-         where_referred_emergency = imci_receivingitp,
-         settlement_other	= other_settlement,
-         prevenr_approx_start = as.Date(approx_start),
-         prevenr_approx_end = as.Date(approx_end),
-         c_prevstatus	= prev_status,
-         sex = coalesce(c_sex, em_c_sex),
-         b_agedocument = as.logical(age_valid),
-         enr_approxage = as.integer(age_months_approx),
-         enr_age = coalesce(age, em_age),
-         enr_age = as.integer(enr_age),
-         b_heightcheck = as.logical(age_height_check),
-         b_reachcheck = as.logical(age_reach_check), 
-         b_tooold = as.logical(b_too_old),
-         domhl = direction_of_measure,
-         finalhl = as.double(hl),
-         roundedhl = as.double(hl_rounded),
-         backuplength = as.double(length),
-         ts_assessed_malnstatus = c_physician_assess,
-         ts_assessed_needitp = as.logical(b_phys_req_itp),
-         ms_wfh = wfh_maln_status,
-         ms_muac = muac_status,
-         ms_oedema = oedema_status,
-         ms_overall = maln_status,
-         b_hastwin = as.logical(b_twin), 
-         muac = as.double(muac),
-         b_twinattended	= as.logical(b_twinhere),
-         tw_name = twin_name,
-         tw_malnstatus = c_twin_ms,
-         tw_pid = twin_pid,
-         ref_g6u4kg = as.logical(eref_g6u4kg),
-         ref_tsref = as.logical(eref_tsref),
-         ref_u6sam = as.logical(eref_u6sam),
-         ref_oedg3 = as.logical(eref_oedg3),
-         ref_oedsam = as.logical(eref_oedsam),
-         b_needsitp = as.logical(ref_overall),
-         b_wasreferred = as.logical(eff_ref_overall),
-         b_mamneedsitp = as.logical(mam_needsitp),
-         cg_age = as.integer(cg_age),
-         tradleader_name = tradleader,
-         phoneowner	= final_phone_owner,
-         b_phoneconsent	= as.logical(phone_consent),
-         langpref	= lang_pref,
-         gave_al_act = as.logical(fgive_al_act),
-         ttype = final_ttype,
-         dose = as.double(final_dose),
-         dose_wtwin = as.double(final_dose_wtwin),
-         rationweeks = as.integer(final_numweeksback),
-         uuid = id,
-         md_submissiondate = as.Date(submission_date),
-         md_submitterid = submitter_id,
-         md_submittername = submitter_name,
-         md_attachmentspres = as.integer(attachments_present),
-         md_attachmentsexp = as.integer(attachments_expected), 
-         md_status = status, 
-         md_reviewstate = review_state,
-         md_deviceid = device_id,
-         md_edits = as.integer(edits),
-         cg_name = coalesce(cg_name, em_cg_name),
-         homedesc = coalesce(homedesc, em_homedesc),
-         phone = coalesce(phone, em_phone),
-         b_fatheralive = as.logical(father_alive),
-         b_motheralive = as.logical(mother_alive),
-         b_isvaxed = as.logical(b_vaccinated),
-         b_twinalive = as.logical(b_twinalive),
-         ses_b_foodsecurity = as.logical(foodsecurity),
-         ses_care_decisionmaker = care_decisionmaker,
-         ses_care_decisionmaker_specify = care_decisionmaker_specify,
-         ses_drinkingwater = drinking_water,
-         ses_edtype_father = ed_type_father,
-         ses_edtype_mother = ed_type_mother,
-         ses_hh_adults = household_adults,
-         ses_hh_slept = household_slept,
-         ses_livingchildren = living_children,
-         ses_toilet = toilet,
-         ses_walltype = wall_type,
-         week = NA, 
-         enr_week = NA,
-         b_movenextvisit = as.logical(final_movevisit),
-         pt_photo = patient_picture,
-         c_cgrelationship = cg_relationship,
-         b_knowsbday = as.logical(b_knowsbday),
-         birthdate = as.Date(birthdate),
-         weight = as.double(weight),
-         finalhl = as.double(hl), 
-         roundedlhl = as.double(roundedhl),
-         b_cgishoh = as.logical(b_cgishoh),
-         manual_nvdate = as.Date(manual_nvdate),
-         rec_birthvax = which_birthvax,
-         rec_6wvax = which_6wvax,
-         rec_10wvax = which_10wvax,
-         rec_14wvax = which_10wvax,
-         b_hadbirthvax = as.logical(b_hadbirthvax),
-         b_had6wvax = as.logical(b_had6wvax),
-         b_had10wvax = as.logical(b_had10wvax),
-         b_had14wvax = as.logical(b_had14wvax),
-         vd_birth = as.Date(vd_birth),
-         vd_6w = as.Date(vd_6w),
-         vd_10w = as.Date(vd_10w),
-         vd_14w = as.Date(vd_14w),
-         b_rota1diff = as.logical(b_rota1diff),
-         b_ipv1diff = as.logical(b_ipv1diff),
-         b_rota2diff = as.logical(b_rota2diff),
-         b_rota3diff = as.logical(b_rota3diff),
-         b_ipv2diff = as.logical(b_ipv2diff),
-         vd_vita1 = as.Date(vd_vita1),
-         vd_measles1 = as.Date(vd_measles1),
-         vd_yf = as.Date(vd_yf),
-         vd_menin = as.Date(vd_menin),
-         vd_vita2 = as.Date(vd_vita2),
-         vd_measles2 = as.Date(vd_measles2),
-         supp_vd_rota1 = as.Date(supp_vd_rota1),
-         supp_vd_ipv1 = as.Date(supp_vd_ipv1),
-         supp_vd_rota2 = as.Date(supp_vd_rota2),
-         supp_vd_rota3 = as.Date(supp_vd_rota3),
-         supp_vd_ipv2 = as.Date(supp_vd_ipv2),
-         dayssincevita = as.logical("")
-  ) %>% 
-  select(all_of(setdiff(vector_of_names, "wfhz")))
-
-admit <- bind_rows(admit, add_admit_processed)
-
-admit <- admit %>% 
-  mutate(cleaning_note = ifelse(pid %in% new_pids, 'PID assigned retroactively during data cleaning.', NA),
-         cleaning_note = ifelse(pid %in% imci_pids & b_referred_emergency == TRUE, "Presented as emergency case at OTP and referred to ITP with no PID assigned; linked with PID retroactively during data cleaning.", NA)
-  )
+# Deleted more stuff here
 
 ### Load and clean ITP data ###
 library(googlesheets4)
@@ -613,6 +219,8 @@ itp_roster <- bind_rows(itp_roster_2024_2, itp_roster_2023_2, itp_roster_2025_2)
          los_days = as.numeric(los_days)) %>% 
   unique() 
 
+# Want to check-- do we need the below section?
+
 ### Additional cleaning of raw ODK admissions data ###
 admit_raw_2 <- admit_raw %>% 
   filter(is.na(review_state) | review_state != "rejected") %>% 
@@ -751,7 +359,7 @@ admit_pids <- admit_raw_2$pid
 ru_setup(
   svc = 'https://taimaka-internal.org:7443/v1/projects/9/forms/weekly.scv',
   un = 'jennifer@taimaka.org',
-  pw = 'deutsch6TH', 
+  pw = '<redacted!>', 
   verbose = TRUE
 )
 
@@ -762,6 +370,8 @@ weekly_raw <- odata_submission_get(
   download=FALSE,
   parse=FALSE
 ) %>% odata_submission_rectangle(names_sep=NULL)
+
+# Do we need the below section?
 
 weekly_raw_2 <- weekly_raw %>% 
   mutate(id = gsub("^uuid:", "", id)) %>% 
@@ -1146,7 +756,7 @@ current_pids <- current$pid
 ru_setup(
   svc = 'https://taimaka-internal.org:7443/v1/projects/12/forms/relapse.scv',
   un = 'jennifer@taimaka.org',
-  pw = 'deutsch6TH', 
+  pw = '<redacted!>', 
   verbose = TRUE
 )
 
@@ -1190,7 +800,7 @@ relapse_raw_2 <- relapse_raw_2 %>%
 ru_setup(
   svc = 'https://taimaka-internal.org:7443/v1/projects/11/forms/mmhs.scv',
   un = 'jennifer@taimaka.org',
-  pw = 'deutsch6TH', 
+  pw = '<redacted!>', 
   verbose = TRUE
 )
 
@@ -1245,7 +855,7 @@ itp_roster <- itp_roster %>%
 ru_setup(
   svc = 'https://taimaka-internal.org:7443/v1/projects/9/forms/Coordinate%20Tracker%20Form%20(1).scv',
   un = 'jennifer@taimaka.org',
-  pw = 'deutsch6TH', 
+  pw = '<redacted!>', 
   verbose = TRUE
 )
 
@@ -1259,20 +869,6 @@ settlement_loc <- odata_submission_get(
 
 settlement_loc2 <- settlement_loc %>% 
   filter(is.na(review_state) | review_state != "rejected")
-
-# ### Select 70% of PIDs for TRAINING SET on Nov 2nd ###
-# library(googledrive)
-# library(readr)
-# 
-# # Define the file ID
-# training_set_id <- "1g8a_DTuCjcaFVz5RjM1y-vxjvwmREbdN"
-# 
-# # Download the file to a temporary location
-# drive_download(as_id(training_set_id), path = "training_set.csv", overwrite = TRUE)
-# 
-# training_pids <- read_csv("training_set.csv")
-# 
-# selected_pids <- training_pids$x
 
 ### Cleaning of extreme values ###
 admit_processed$ses_hh_adults[admit_processed$ses_hh_adults == 1511] <- NA
@@ -1869,119 +1465,7 @@ weekly_raw_2 <- weekly_raw_2 %>%
     age = if_else(!is.na(new_value) & to_change == "age", new_value, age)) %>% 
   select(-new_value, -new_date, -to_change)
 
-### Add z-scores ###
-admit_processed <- admit_processed %>% 
-  mutate(age = as.numeric(enr_age)) %>% 
-  mutate(age_zscore = enr_age * (365.25 / 12),
-         standing = ifelse(domhl == "height", 1, 
-                           ifelse(domhl == "length", 2, 3)),
-         sex_num = ifelse(sex == "male", 1, 
-                          ifelse(sex == "female", 2, NA))) 
-
-weekly_processed <- weekly_processed %>% 
-  mutate(age = as.numeric(wkl_age)) %>% 
-  mutate(age_zscore = wkl_age * (365.25 / 12),
-         standing = ifelse(domhl == "height", 1, 
-                           ifelse(domhl == "length", 2, 3)),
-         sex_num = ifelse(sex == "male", 1, 
-                          ifelse(sex == "female", 2, NA))) 
-
-admit_raw_2 <- admit_raw_2 %>% 
-  mutate(age = as.numeric(age)) %>% 
-  mutate(age_zscore = age * (365.25 / 12),
-         standing = ifelse(direction_of_measure == "height", 1, 
-                           ifelse(direction_of_measure == "length", 2, 3)),
-         sex_num = ifelse(c_sex == "male", 1, 
-                          ifelse(c_sex == "female", 2, NA))) 
-
-weekly_raw_2 <- weekly_raw_2 %>% 
-  mutate(age_zscore = age * (365.25 / 12),
-         standing = ifelse(direction_of_measure == "height", 1, 
-                           ifelse(direction_of_measure == "length", 2, 3)),
-         sex_num = ifelse(c_sex == "male", 1, 
-                          ifelse(c_sex == "female", 2, NA))) 
-
-library(zscorer)
-
-admit_processed <- addWGSR(data = admit_processed, 
-                           sex = "sex_num", 
-                           firstPart = "weight",
-                           secondPart = "finalhl", 
-                           standing = "standing", 
-                           index = "wfh")
-
-admit_processed <- addWGSR(data = admit_processed, 
-                           sex = "sex_num", 
-                           firstPart = "finalhl",
-                           secondPart = "age_zscore", 
-                           standing = "standing", 
-                           index = "hfa") 
-
-admit_processed <- addWGSR(data = admit_processed, 
-                           sex = "sex_num", 
-                           firstPart = "weight",
-                           secondPart = "age_zscore", 
-                           index = "wfa") 
-
-weekly_processed <- addWGSR(data = weekly_processed, 
-                            sex = "sex_num", 
-                            firstPart = "weight",
-                            secondPart = "finalhl", 
-                            standing = "standing", 
-                            index = "wfh")
-
-weekly_processed <- addWGSR(data = weekly_processed, 
-                            sex = "sex_num", 
-                            firstPart = "finalhl",
-                            secondPart = "age_zscore", 
-                            standing = "standing", 
-                            index = "hfa") 
-
-weekly_processed <- addWGSR(data = weekly_processed, 
-                            sex = "sex_num", 
-                            firstPart = "weight",
-                            secondPart = "age_zscore", 
-                            index = "wfa") 
-
-admit_raw_2 <- addWGSR(data = admit_raw_2, 
-                       sex = "sex_num", 
-                       firstPart = "weight",
-                       secondPart = "hl", 
-                       standing = "standing", 
-                       index = "wfh")
-
-admit_raw_2 <- addWGSR(data = admit_raw_2, 
-                       sex = "sex_num", 
-                       firstPart = "hl",
-                       secondPart = "age_zscore", 
-                       standing = "standing", 
-                       index = "hfa") 
-
-admit_raw_2 <- addWGSR(data = admit_raw_2, 
-                       sex = "sex_num", 
-                       firstPart = "weight",
-                       secondPart = "age_zscore", 
-                       index = "wfa") 
-
-weekly_raw_2 <- addWGSR(data = weekly_raw_2, 
-                        sex = "sex_num", 
-                        firstPart = "weight",
-                        secondPart = "hl", 
-                        standing = "standing", 
-                        index = "wfh")
-
-weekly_raw_2 <- addWGSR(data = weekly_raw_2, 
-                        sex = "sex_num", 
-                        firstPart = "hl",
-                        secondPart = "age_zscore", 
-                        standing = "standing", 
-                        index = "hfa") 
-
-weekly_raw_2 <- addWGSR(data = weekly_raw_2, 
-                        sex = "sex_num", 
-                        firstPart = "weight",
-                        secondPart = "age_zscore", 
-                        index = "wfa") 
+# Removed z-scores
 
 ## Co-occurring anthro deficiencies
 
@@ -2140,213 +1624,6 @@ current_processed <- current_processed %>%
   mutate(lean_season = month(status_date) %in% c(6, 7, 8, 9),
          rainy_season = month(status_date) %in% c(5, 6, 7, 8, 9, 10))
 
-# ### Filter for 70% and save TRAINING set CSV files locally ###
-# TRAIN_admit_processed <- admit_processed %>% 
-#   filter(pid %in% selected_pids)
-# train_admit_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_admit_processed_", Sys.Date(), ".csv")
-# write.csv(TRAIN_admit_processed, file = train_admit_processed_file_name, row.names = FALSE)
-# 
-# FULL_admit_processed <- admit_processed %>% 
-#   filter(pid %in% current_pids)
-# full_admit_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_admit_processed_", Sys.Date(), ".csv")
-# write.csv(FULL_admit_processed, file = full_admit_processed_file_name, row.names = FALSE)
-# 
-# TRAIN_weekly_processed <- weekly_processed %>% 
-#   filter(pid %in% selected_pids)
-# train_weekly_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_weekly_processed_", Sys.Date(), ".csv")
-# write.csv(TRAIN_weekly_processed, file = train_weekly_processed_file_name, row.names = FALSE)
-# 
-# FULL_weekly_processed <- weekly_processed %>% 
-#   filter(pid %in% current_pids)
-# full_weekly_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_weekly_processed_", Sys.Date(), ".csv")
-# write.csv(FULL_weekly_processed, file = full_weekly_processed_file_name, row.names = FALSE)
-# 
-# TRAIN_current_processed <- current_processed %>% 
-#   filter(pid %in% selected_pids)
-# train_current_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_current_processed_", Sys.Date(), ".csv")
-# write.csv(TRAIN_current_processed, file = train_current_processed_file_name, row.names = FALSE)
-# 
-# FULL_current_processed <- current_processed %>% 
-#   filter(pid %in% current_pids)
-# full_current_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_current_processed_", Sys.Date(), ".csv")
-# write.csv(FULL_current_processed, file = full_current_processed_file_name, row.names = FALSE)
-# 
-# TRAIN_admit_raw_2 <- admit_raw_2 %>% 
-#   filter(pid %in% selected_pids)
-# train_admit_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_admit_raw_", Sys.Date(), ".csv")
-# write.csv(TRAIN_admit_raw_2, file = train_admit_raw_file_name, row.names = FALSE)
-# 
-# FULL_admit_raw_2 <- admit_raw_2 %>% 
-#   filter(pid %in% current_pids)
-# full_admit_raw_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_admit_raw_", Sys.Date(), ".csv")
-# write.csv(FULL_admit_raw_2, file = full_admit_raw_processed_file_name, row.names = FALSE)
-# 
-# TRAIN_weekly_raw_2 <- weekly_raw_2 %>% 
-#   filter(pid %in% selected_pids)
-# train_weekly_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_weekly_raw_", Sys.Date(), ".csv")
-# write.csv(TRAIN_weekly_raw_2, file = train_weekly_raw_file_name, row.names = FALSE)
-# 
-# FULL_weekly_raw_2 <- weekly_raw_2 %>% 
-#   filter(pid %in% current_pids)
-# full_weekly_raw_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_weekly_raw_", Sys.Date(), ".csv")
-# write.csv(FULL_weekly_raw_2, file = full_weekly_raw_processed_file_name, row.names = FALSE)
-# 
-# TRAIN_itp_roster <- itp_roster %>% 
-#   filter(pid %in% selected_pids)
-# train_itp_roster_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_itp_roster_", Sys.Date(), ".csv")
-# write.csv(TRAIN_itp_roster, file = train_itp_roster_file_name, row.names = FALSE)
-# 
-# FULL_itp_roster <- itp_roster %>% 
-#   filter(pid %in% current_pids)
-# full_itp_roster_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_itp_roster_", Sys.Date(), ".csv")
-# write.csv(FULL_itp_roster, file = full_itp_roster_file_name, row.names = FALSE)
-# 
-# TRAIN_relapse_raw_2 <- relapse_raw_2 %>% 
-#   filter(pid %in% selected_pids)
-# train_relapse_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_relapse_raw_", Sys.Date(), ".csv")
-# write.csv(TRAIN_relapse_raw_2, file = train_relapse_raw_file_name, row.names = FALSE)
-# 
-# FULL_relapse_raw_2 <- relapse_raw_2 %>% 
-#   filter(pid %in% current_pids)
-# full_relapse_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_relapse_raw_", Sys.Date(), ".csv")
-# write.csv(FULL_relapse_raw_2, file = full_relapse_raw_file_name, row.names = FALSE)
-# 
-# TRAIN_mh_raw_2 <- mh_raw_2 %>% 
-#   filter(pid %in% selected_pids)
-# train_mh_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TRAIN_pba_mh_raw_", Sys.Date(), ".csv")
-# write.csv(TRAIN_mh_raw_2, file = train_mh_raw_file_name, row.names = FALSE)
-# 
-# FULL_mh_raw_2 <- mh_raw_2 %>% 
-#   filter(pid %in% current_pids)
-# full_mh_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/FULL_pba_mh_raw_", Sys.Date(), ".csv")
-# write.csv(FULL_mh_raw_2, file = full_mh_raw_file_name, row.names = FALSE)
-# 
-# settlement_loc_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/pba_settlement_loc_", Sys.Date(), ".csv")
-# write.csv(settlement_loc2, file = settlement_loc_file_name, row.names = FALSE)
-# 
-# ### Filter for 30% and save TEST SET CSV files locally ###
-# TEST_admit_processed <- admit_processed %>% 
-#   filter(!pid %in% selected_pids)
-# test_admit_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_admit_processed_", Sys.Date(), ".csv")
-# write.csv(TEST_admit_processed, file = test_admit_processed_file_name, row.names = FALSE)
-# 
-# TEST_weekly_processed <- weekly_processed %>% 
-#   filter(!pid %in% selected_pids)
-# test_weekly_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_weekly_processed_", Sys.Date(), ".csv")
-# write.csv(TEST_weekly_processed, file = test_weekly_processed_file_name, row.names = FALSE)
-# 
-# TEST_current_processed <- current_processed %>% 
-#   filter(!pid %in% selected_pids)
-# test_current_processed_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_current_processed_", Sys.Date(), ".csv")
-# write.csv(TEST_current_processed, file = test_current_processed_file_name, row.names = FALSE)
-# 
-# TEST_admit_raw_2 <- admit_raw_2 %>% 
-#   filter(!pid %in% selected_pids)
-# test_admit_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_admit_raw_", Sys.Date(), ".csv")
-# write.csv(TEST_admit_raw_2, file = test_admit_raw_file_name, row.names = FALSE)
-# 
-# TEST_weekly_raw_2 <- weekly_raw_2 %>% 
-#   filter(!pid %in% selected_pids)
-# test_weekly_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_weekly_raw_", Sys.Date(), ".csv")
-# write.csv(TEST_weekly_raw_2, file = test_weekly_raw_file_name, row.names = FALSE)
-# 
-# TEST_itp_roster <- itp_roster %>% 
-#   filter(!pid %in% selected_pids)
-# test_itp_roster_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_itp_roster_", Sys.Date(), ".csv")
-# write.csv(TEST_itp_roster, file = test_itp_roster_file_name, row.names = FALSE)
-# 
-# TEST_relapse_raw_2 <- relapse_raw_2 %>% 
-#   filter(!pid %in% selected_pids)
-# test_relapse_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_relapse_raw_", Sys.Date(), ".csv")
-# write.csv(TEST_relapse_raw_2, file = test_relapse_raw_file_name, row.names = FALSE)
-# 
-# TEST_mh_raw_2 <- mh_raw_2 %>% 
-#   filter(!pid %in% selected_pids)
-# test_mh_raw_file_name <- paste0("C:/Users/ostro/taimaka_data/relapse/pba/TEST_pba_mh_raw_", Sys.Date(), ".csv")
-# write.csv(TEST_mh_raw_2, file = test_mh_raw_file_name, row.names = FALSE)
-# 
-#
-# # ### Upload TRAINING set files to Drive - change file name to match 1st upload ###
-# library(googledrive)
-# drive_auth()
-#
-# # Specify folder ID
-# folder_id <- "1GD0yNK4g87mvQNRKP9vETtbwZu4Fi_J2"
-#
-# # Upload the CSV file to Google Drive
-#
-# drive_upload(
-#   media = train_admit_processed_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_admit_processed_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = train_weekly_processed_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_weekly_processed_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = train_current_processed_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_current_processed_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = train_admit_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_admit_raw_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = train_weekly_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_weekly_raw_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = train_itp_roster_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_itp_roster_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = train_relapse_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_relapse_raw_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = train_mh_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("train_pba_mh_raw_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-#
-# drive_upload(
-#   media = settlement_loc_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("pba_settlement_loc_2024-11-02.csv"),
-#   overwrite = TRUE
-# )
-
 ### BRIANNA Save full CSV files locally ###
 FULL_admit_processed <- admit_processed %>%
   filter(pid %in% current_pids)
@@ -2434,84 +1711,3 @@ write.csv(FULL_mh_raw_2, file = full_mh_raw_file_name, row.names = FALSE)
 
 settlement_loc_file_name_for_google <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/pba_settlement_loc_2024-11-15.csv")
 write.csv(settlement_loc2, file = settlement_loc_file_name, row.names = FALSE)
-
-# ### Upload FULL set files to Drive - change file name to match 1st upload ###
-# library(googledrive)
-# drive_auth()
-
-# Specify folder ID
-# folder_id <- "17DQT6R53YIo5oHJyeepZc_7Gn7xOn1Vh"
-
-# Upload the CSV file to Google Drive
-
-# drive_upload(
-#   media = full_admit_processed_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("FULL_pba_admit_processed_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = full_weekly_processed_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("FULL_pba_weekly_processed_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = full_current_processed_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("FULL_pba_current_processed_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = full_admit_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("FULL_pba_admit_raw_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = full_weekly_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("FULL_pba_weekly_raw_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = full_itp_roster_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("FULL_pba_itp_roster_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = full_relapse_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("FULL_pba_relapse_raw_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = full_mh_raw_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("full_pba_mh_raw_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
-# 
-# drive_upload(
-#   media = settlement_loc_file_name,
-#   path = as_id(folder_id),
-#   type = "text/csv",
-#   name = paste0("pba_settlement_loc_2024-11-15.csv"),
-#   overwrite = TRUE
-# )
