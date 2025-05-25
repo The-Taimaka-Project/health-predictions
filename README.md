@@ -1,4 +1,4 @@
-# ETL Code for Predictive Models of Health Outcomes
+# ETL and Inference Code for Predictive Models of Health Outcomes
 
 Authors:
 - Brianna Eales
@@ -7,13 +7,82 @@ Authors:
 
 ## Description
 
-This codebase contains functionality for extracting, transforming, and loading (ETL) patient data to prepare it as input for downstream predictive models of patient outcomes.
+This codebase contains functionality for extracting, transforming, and loading (ETL) patient data to prepare it as input for downstream predictive models of patient outcomes, as well as running inference on this data using those models. DigitalOcean's [Functions](https://docs.digitalocean.com/products/functions/) are used to schedule ETL and inference jobs.
 
 ## Structure
 
-Preliminary, but currently my mental model is that it will most likely look like this:
-- `briannas_code.R`: Collects raw input data, stores cleaned data (I'll call it "model-raw").
-- `brians_code.py`: Takes the model-raw data, processes it further into model-ready data.
-- `run_etl.sh`: just a wrapper around the two above scripts, can take care of authentication, temporary data, etc.
+- `packages/etl`: ETL scripts for preparing inference data.
+- `packages/inference`: Scripts for running inference on the prepared data.
+- `project.yml`: The configuration file defining the DigitalOcean Functions.
 
-The bash script will be the entry point and is what will run on the compute instance. Running this ETL process can store both model-raw and model-ready data in the Postgres database.
+## Potential Issues
+
+DigitalOcean Functions do not have an R runtime. We may need to migrate Brianna's code to Python.
+
+## Next Steps
+
+- Assess whether Brianna's code can be migrated to Python
+- Ensure the ETL Function can authenticate to and access the Taimaka Postgres database
+
+## For Developers
+
+### Description
+
+This repo is modeled after DigitalOcean's [Functions Quick Start](https://docs.digitalocean.com/products/functions/getting-started/quickstart/) page. A Function is a block of code that runs on demand without the need to manage any infrastructure (i.e., it is "serverless"). I chose to use Functions because they are serverless and can be scheduled.
+
+### Installing `doctl`
+
+(I'm learning DigitalOcean as I go, so currently I'm just documenting my progress, and I'll clean this up later.)
+
+I'll document how I set this up from my mac. First I installed `doctl`:
+```bash
+brew install doctl
+```
+
+In my DigitalOcean console in the browser, I created an API token, then I ran the following code in my terminal to authenticate my local machine to my DigitalOcean account (TODO: need to set up a Taimaka context as well, see commented code below):
+```bash
+doctl auth init  # set up a base context. I pasted my token when prompted.
+
+## once I have Taimaka credentials for DigitalOcean, I'll run this too:
+# doctl auth init --context taimaka
+```
+
+I also installed serverless functions:
+```bash
+doctl serverless install
+```
+
+There are more details on installation and troubleshooting on DigitalOcean's [installation page](https://docs.digitalocean.com/reference/doctl/how-to/install/).
+
+### Setup and deployment
+
+I created a namespace for testing (TODO: create a namespace within the Taimaka DigitalOcean account)
+```bash
+doctl serverless namespaces create --label hunter-taimaka-example --region nyc1
+```
+
+And I deployed the two "hello, world" functions in this repo to that namespace:
+```bash
+# run this from the root directory that contains `project.yml`:
+doctl serverless deploy .
+```
+
+This gave me the following output:
+```
+Deploying '/Users/hunter.merrill/dev/repos/health-predictions'
+  to namespace '<uuid redacted>'
+  on host 'https://<host redacted>.doserverless.co'
+Deployment status recorded in '.deployed'
+
+Deployed functions ('doctl sls fn get <funcName> --url' for URL):
+  - etl/hello
+  - inference/hello
+Deployed triggers:
+  - trigger-etl-every-minute
+```
+
+In my DigitalOcean dashboard in the browser, I saw that the `etl/hello` function was indeed running every minute. So I then undeployed both functions:
+```bash
+doctl serverless undeploy etl/hello
+doctl serverless undeploy inference/hello
+```
