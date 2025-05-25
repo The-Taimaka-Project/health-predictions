@@ -67,7 +67,7 @@ And I deployed the two "hello, world" functions in this repo to that namespace:
 doctl serverless deploy .
 ```
 
-This gave me the following output:
+This gave me the following output (which I edited to remove the UUIDs identifying the namespace and host):
 ```
 Deploying '/Users/hunter.merrill/dev/repos/health-predictions'
   to namespace '<uuid redacted>'
