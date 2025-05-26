@@ -19,13 +19,13 @@ This codebase contains functionality for extracting, transforming, and loading (
 
 DigitalOcean Functions pricing is described [here](https://www.digitalocean.com/pricing/functions). In short, the cost is RAM (GiB) times runtime (seconds), minus a 90k GiB $\cdot$ s allowance per month, times $0.0000185. I don't know yet how long the code runs or how much RAM it uses, but the table below shows some expected cost based on some assumptions.
 
-| Assumed runs per month | Assumed RAM used | Assumed runtime | **Cost per month** |
-| :--------------------- | ---------------: | --------------: | -----------------: |
-|                     30 |              1GB |          30 min |          **$0.00** |
-|                     30 |              8GB |          15 min |          **$2.31** |
-|                     30 |              4GB |          30 min |          **$2.31** |
-|                     30 |              8GB |          30 min |          **$6.33** |
-|                     30 |             16GB |            1 hr |         **$30.30** |
+| Runs per month | Assumed RAM used | Assumed runtime | **Cost per month** |
+| -------------: | ---------------: | --------------: | -----------------: |
+|             30 |              1GB |          30 min |          **$0.00** |
+|             30 |              8GB |          15 min |          **$2.31** |
+|             30 |              4GB |          30 min |          **$2.31** |
+|             30 |              8GB |          30 min |          **$6.33** |
+|             30 |             16GB |          1 hour |         **$30.30** |
 
 ## Potential Issues
 
