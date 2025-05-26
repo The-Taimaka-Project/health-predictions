@@ -99,7 +99,7 @@ library(stringr)
 
 # Deleted ITP roster loading code that started from google sheets
 
-# TODO: Want to check-- do we need the below section?
+# Staff member cleaning is required for inference time
 
 ### Additional cleaning of raw ODK admissions data ###
 admit_raw_2 <- admit_raw %>% 
@@ -250,8 +250,6 @@ weekly_raw <- odata_submission_get(
   download=FALSE,
   parse=FALSE
 ) %>% odata_submission_rectangle(names_sep=NULL)
-
-# TODO: Do we need staff member cleaning at inference time?
 
 weekly_raw_2 <- weekly_raw %>% 
   mutate(id = gsub("^uuid:", "", id)) %>% 
@@ -763,7 +761,7 @@ admit_raw_2$hl[admit_raw_2$hl == 31] <- 72.2
 admit_processed$finalhl[admit_processed$finalhl == 7.2] <- 82
 admit_raw_2$hl[admit_raw_2$hl == 7.2] <- 82
 
-# TODO: How to handle two visits in a single day at inference time?
+# TODO: How to handle two visits in a single day at inference time? Check with Brian
 
 ### Cleaning of 2 visits in a single day ###
 pid_dup_visits <- read_sheet("https://docs.google.com/spreadsheets/d/1of2XyX_-zz-JWTNd3Xls26QPbKzmRISDshZF3OzNVBs/edit?gid=0#gid=0") %>% 
@@ -782,512 +780,121 @@ weekly_raw_2 <- weekly_raw_2 %>%
   select(-new_value)
 
 # Removed historical filtering of weekly processed data by UUID
+# Removed age updates and admission extreme value processing
 
-# TODO: do we need a weekly age update at inference time?
-
-# Incorporate weekly age updates from google spreadsheet/csv
-weekly_age_update <- read_sheet("https://docs.google.com/spreadsheets/d/1f34ZlqbOt5nyY-TbVvpX3BBtIcCBDWsg7bwFTYadhpw/edit?usp=sharing") %>%
-  as.data.frame() %>% 
-  mutate(calc_age = as.integer(calc_age),
-         uuid = as.character(uuid)) %>% 
-  select(-pid, -rec_age)
-
-weekly_processed <- weekly_processed %>%
-  mutate(wkl_age = as.integer(wkl_age))
-
-weekly_raw_2 <- weekly_raw_2 %>% 
-  mutate(age = as.integer(age),
-         id = as.character(id))
-
-weekly_processed <- weekly_processed %>%
-  left_join(weekly_age_update, by = c("uuid" = "uuid")) %>%
-  mutate(wkl_age = if_else(!is.na(calc_age), calc_age, wkl_age)) %>% 
-  select(-calc_age)
-
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(weekly_age_update, by = c("id" = "uuid")) %>%
-  mutate(todate = as.Date(todate)) %>% 
-  mutate(age = if_else(!is.na(calc_age), calc_age, age)) %>% 
-  select(-calc_age)
-
-# Incorporate weekly extremes updates from google spreadsheet/csv
-library(tidyverse)
-library(googlesheets4)
-
-# TODO: do we need weekly extremes updates at inference time?
-
-# Read and preprocess the weekly_extremes data
-weekly_extremes <- read_sheet("https://docs.google.com/spreadsheets/d/1v6ZjgaZ-TZOzoVi3HdBCzNr4ec-Omg7SmZ379-STzXc/edit?usp=sharing") %>%
-  select(-todate, -pid) %>%
-  mutate(to_change = as.character(to_change),
-         new_value_c = as.character(new_value_c),
-         new_value_n = sapply(new_value_n, function(x) if (is.null(x)) NA else x),
-         new_value_n = as.numeric(new_value_n),
-         uuid = as.character(uuid))  # Ensure uuid is character
-
-# Ensure id in weekly_raw_2 and weekly_processed are character for matching
-weekly_raw_2 <- weekly_raw_2 %>%
-  mutate(id = as.character(id),
-         hl = as.numeric(hl), 
-         hl_rounded = as.numeric(hl_rounded),
-         muac = as.numeric(muac),
-         wfh_sam_threshold = as.numeric(wfh_sam_threshold),
-         wfh_mam_threshold = as.numeric(wfh_mam_threshold))
-
-weekly_processed <- weekly_processed %>%
-  mutate(uuid = as.character(uuid))
-
-weekly_extremes_finalhl <- weekly_extremes %>%
-  filter(to_change == 'finalhl') %>%
-  mutate(new_value_n = as.numeric(new_value_n))
-
-weekly_extremes_hl_rounded <- weekly_extremes %>%
-  filter(to_change == 'hl_rounded') %>%
-  mutate(new_value_n = as.numeric(new_value_n))
-
-weekly_extremes_muac <- weekly_extremes %>%
-  filter(to_change == 'muac') %>%
-  mutate(new_value_n = as.numeric(new_value_n))
-
-weekly_extremes_muac_status <- weekly_extremes %>%
-  filter(to_change == 'muac_status')
-
-weekly_extremes_wfh_lookup_calc <- weekly_extremes %>%
-  filter(to_change == 'wfh_lookup_calc')
-
-weekly_extremes_wfh_maln_status <- weekly_extremes %>%
-  filter(to_change == 'wfh_maln_status')
-
-weekly_extremes_wfh_sam_threshold <- weekly_extremes %>%
-  filter(to_change == 'wfh_sam_threshold') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-weekly_extremes_wfh_mam_threshold <- weekly_extremes %>%
-  filter(to_change == 'wfh_mam_threshold') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-weekly_extremes_weight <- weekly_extremes %>%
-  filter(to_change == 'weight') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-weekly_extremes_weight_rounded <- weekly_extremes %>%
-  filter(to_change == 'weight_rounded') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-weekly_extremes_c_sex <- weekly_extremes %>%
-  filter(to_change == 'c_sex')
-
-weekly_extremes_sex_abriev <- weekly_extremes %>%
-  filter(to_change == 'sex_abriev')
-
-weekly_extremes_wkl_age <- weekly_extremes %>%
-  filter(to_change == 'wkl_age') %>%
-  mutate(new_value_n = as.numeric(new_value_n))
-
-weekly_processed <- weekly_processed %>%
-  left_join(weekly_extremes_finalhl, by = c("uuid" = "uuid")) %>%
-  mutate(
-    finalhl = if_else(!is.na(new_value_n) & to_change == "finalhl", new_value_n, finalhl)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-weekly_processed <- weekly_processed %>%
-  left_join(weekly_extremes_muac, by = c("uuid" = "uuid")) %>%
-  mutate(
-    muac = if_else(!is.na(new_value_n) & to_change == "muac", new_value_n, muac)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+### Add z-scores ###
+admit_processed <- admit_processed %>% 
+  mutate(age = as.numeric(enr_age)) %>% 
+  mutate(age_zscore = enr_age * (365.25 / 12),
+         standing = ifelse(domhl == "height", 1, 
+                           ifelse(domhl == "length", 2, 3)),
+         sex_num = ifelse(sex == "male", 1, 
+                          ifelse(sex == "female", 2, NA))) 
 
 weekly_processed <- weekly_processed %>% 
-  left_join(weekly_extremes_muac_status, by = c("uuid" = "uuid")) %>%
-  mutate(
-    ms_muac = if_else(!is.na(new_value_c) & to_change == "muac_status", new_value_c, ms_muac)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+  mutate(age = as.numeric(wkl_age)) %>% 
+  mutate(age_zscore = wkl_age * (365.25 / 12),
+         standing = ifelse(domhl == "height", 1, 
+                           ifelse(domhl == "length", 2, 3)),
+         sex_num = ifelse(sex == "male", 1, 
+                          ifelse(sex == "female", 2, NA))) 
 
-weekly_processed <- weekly_processed %>% 
-  left_join(weekly_extremes_wfh_maln_status, by = c("uuid" = "uuid")) %>%
-  mutate(
-    ms_wfh = if_else(!is.na(new_value_c) & to_change == "wfh_maln_status", new_value_c, ms_wfh)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-weekly_processed <- weekly_processed %>% 
-  left_join(weekly_extremes_weight, by = c("uuid" = "uuid")) %>%
-  mutate(
-    weight = if_else(!is.na(new_value_n) & to_change == "weight", new_value_n, weight)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-weekly_processed <- weekly_processed %>%
-  left_join(weekly_extremes_c_sex, by = c("uuid" = "uuid")) %>%
-  mutate(
-    sex = if_else(!is.na(new_value_c) & to_change == "c_sex", new_value_c, sex)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-weekly_processed <- weekly_processed %>%
-  left_join(weekly_extremes_wkl_age, by = c("uuid" = "uuid")) %>% 
-  mutate(
-    wkl_age = if_else(!is.na(new_value_n) & to_change == "wkl_age", new_value_n, wkl_age)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(weekly_extremes_finalhl, by = c("id" = "uuid")) %>%
-  mutate(
-    hl = if_else(!is.na(new_value_n) & to_change == "finalhl", new_value_n, hl)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(weekly_extremes_hl_rounded, by = c("id" = "uuid")) %>%
-  mutate(
-    hl_rounded = if_else(!is.na(new_value_n) & to_change == "hl_rounded", new_value_n, hl_rounded)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(weekly_extremes_muac, by = c("id" = "uuid")) %>%
-  mutate(
-    muac = if_else(!is.na(new_value_n) & to_change == "muac", new_value_n, muac)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+admit_raw_2 <- admit_raw_2 %>% 
+  mutate(age = as.numeric(age)) %>% 
+  mutate(age_zscore = age * (365.25 / 12),
+         standing = ifelse(direction_of_measure == "height", 1, 
+                           ifelse(direction_of_measure == "length", 2, 3)),
+         sex_num = ifelse(c_sex == "male", 1, 
+                          ifelse(c_sex == "female", 2, NA))) 
 
 weekly_raw_2 <- weekly_raw_2 %>% 
-  left_join(weekly_extremes_muac_status, by = c("id" = "uuid")) %>%
-  mutate(
-    muac_status = if_else(!is.na(new_value_c) & to_change == "muac_status", new_value_c, muac_status)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+  mutate(age_zscore = age * (365.25 / 12),
+         standing = ifelse(direction_of_measure == "height", 1, 
+                           ifelse(direction_of_measure == "length", 2, 3)),
+         sex_num = ifelse(c_sex == "male", 1, 
+                          ifelse(c_sex == "female", 2, NA))) 
 
-weekly_raw_2 <- weekly_raw_2 %>% 
-  left_join(weekly_extremes_wfh_lookup_calc, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_lookup_calc = if_else(!is.na(new_value_c) & to_change == "wfh_lookup_calc", new_value_c, wfh_lookup_calc)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+library(zscorer)
 
-weekly_raw_2 <- weekly_raw_2 %>% 
-  left_join(weekly_extremes_wfh_maln_status, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_maln_status = if_else(!is.na(new_value_c) & to_change == "wfh_maln_status", new_value_c, wfh_maln_status)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+admit_processed <- addWGSR(data = admit_processed, 
+                           sex = "sex_num", 
+                           firstPart = "weight",
+                           secondPart = "finalhl", 
+                           standing = "standing", 
+                           index = "wfh")
 
-weekly_raw_2 <- weekly_raw_2 %>% 
-  left_join(weekly_extremes_wfh_sam_threshold, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_sam_threshold = if_else(!is.na(new_value_n) & to_change == "wfh_sam_threshold", new_value_n, wfh_sam_threshold)
-  ) %>% 
-  select(-to_change, -new_value_n)
+admit_processed <- addWGSR(data = admit_processed, 
+                           sex = "sex_num", 
+                           firstPart = "finalhl",
+                           secondPart = "age_zscore", 
+                           standing = "standing", 
+                           index = "hfa") 
 
-weekly_raw_2 <- weekly_raw_2 %>% 
-  left_join(weekly_extremes_wfh_mam_threshold, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_mam_threshold = if_else(!is.na(new_value_n) & to_change == "wfh_mam_threshold", new_value_n, wfh_mam_threshold)
-  ) %>%
-  select(-to_change, -new_value_n)
+admit_processed <- addWGSR(data = admit_processed, 
+                           sex = "sex_num", 
+                           firstPart = "weight",
+                           secondPart = "age_zscore", 
+                           index = "wfa") 
 
-weekly_raw_2 <- weekly_raw_2 %>% 
-  left_join(weekly_extremes_weight, by = c("id" = "uuid")) %>%
-  mutate(
-    weight = as.numeric(weight),
-    weight = if_else(!is.na(new_value_n) & to_change == "weight", new_value_n, weight)
-  ) %>%
-  select(-to_change, -new_value_n)
+weekly_processed <- addWGSR(data = weekly_processed, 
+                            sex = "sex_num", 
+                            firstPart = "weight",
+                            secondPart = "finalhl", 
+                            standing = "standing", 
+                            index = "wfh")
 
-weekly_raw_2 <- weekly_raw_2 %>% 
-  left_join(weekly_extremes_weight_rounded, by = c("id" = "uuid")) %>%
-  mutate(
-    weight_rounded = as.numeric(weight_rounded),
-    weight_rounded = if_else(!is.na(new_value_n) & to_change == "weight_rounded", new_value_n, weight_rounded)
-  ) %>%
-  select(-to_change, -new_value_n)
+weekly_processed <- addWGSR(data = weekly_processed, 
+                            sex = "sex_num", 
+                            firstPart = "finalhl",
+                            secondPart = "age_zscore", 
+                            standing = "standing", 
+                            index = "hfa") 
 
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(weekly_extremes_c_sex, by = c("id" = "uuid")) %>%
-  mutate(
-    c_sex = if_else(!is.na(new_value_c) & to_change == "c_sex", new_value_c, c_sex)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+weekly_processed <- addWGSR(data = weekly_processed, 
+                            sex = "sex_num", 
+                            firstPart = "weight",
+                            secondPart = "age_zscore", 
+                            index = "wfa") 
 
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(weekly_extremes_sex_abriev, by = c("id" = "uuid")) %>%
-  mutate(
-    sex_abriev = if_else(!is.na(new_value_c) & to_change == "sex_abriev", new_value_c, sex_abriev)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+admit_raw_2 <- addWGSR(data = admit_raw_2, 
+                       sex = "sex_num", 
+                       firstPart = "weight",
+                       secondPart = "hl", 
+                       standing = "standing", 
+                       index = "wfh")
 
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(weekly_extremes_wkl_age, by = c("id" = "uuid")) %>% 
-  mutate(
-    age = if_else(!is.na(new_value_n) & to_change == "wkl_age", new_value_n, age)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
+admit_raw_2 <- addWGSR(data = admit_raw_2, 
+                       sex = "sex_num", 
+                       firstPart = "hl",
+                       secondPart = "age_zscore", 
+                       standing = "standing", 
+                       index = "hfa") 
 
-# TODO: do we need admit extremes updates at inference time?
+admit_raw_2 <- addWGSR(data = admit_raw_2, 
+                       sex = "sex_num", 
+                       firstPart = "weight",
+                       secondPart = "age_zscore", 
+                       index = "wfa") 
 
-# Incorporate admit extremes updates from google spreadsheet/csv
-admit_extremes <- read_sheet("https://docs.google.com/spreadsheets/d/1aaLUNUBK0Run9A999EZpVBTT77mnwRKP9u3GrDwoHlM/edit?gid=1821666321#gid=1821666321") %>% 
-  as.data.frame() %>% 
-  select(to_change, uuid, new_value_n, new_value_c) %>%
-  mutate(to_change = as.character(to_change),
-         new_value_c = as.character(new_value_c),
-         uuid = as.character(uuid))
+weekly_raw_2 <- addWGSR(data = weekly_raw_2, 
+                        sex = "sex_num", 
+                        firstPart = "weight",
+                        secondPart = "hl", 
+                        standing = "standing", 
+                        index = "wfh")
 
-admit_raw_2 <- admit_raw_2 %>%
-  mutate(id = as.character(id),
-         hl = as.numeric(hl), 
-         hl_rounded = as.numeric(hl_rounded),
-         muac = as.numeric(muac))
+weekly_raw_2 <- addWGSR(data = weekly_raw_2, 
+                        sex = "sex_num", 
+                        firstPart = "hl",
+                        secondPart = "age_zscore", 
+                        standing = "standing", 
+                        index = "hfa") 
 
-admit_extremes_finalhl <- admit_extremes %>%
-  filter(to_change == 'finalhl')%>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-admit_extremes_hl_rounded <- admit_extremes %>%
-  filter(to_change == 'hl_rounded')%>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-admit_extremes_muac <- admit_extremes %>%
-  filter(to_change == 'muac')%>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-admit_extremes_muac_status <- admit_extremes %>%
-  filter(to_change == 'muac_status')
-
-admit_extremes_wfh_lookup_calc <- admit_extremes %>%
-  filter(to_change == 'wfh_lookup_calc')
-
-admit_extremes_wfh_maln_status <- admit_extremes %>%
-  filter(to_change == 'wfh_maln_status')
-
-admit_extremes_wfh_sam_threshold <- admit_extremes %>%
-  filter(to_change == 'wfh_sam_threshold') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-admit_extremes_wfh_mam_threshold <- admit_extremes %>%
-  filter(to_change == 'wfh_mam_threshold') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-admit_extremes_weight <- admit_extremes %>%
-  filter(to_change == 'weight') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-admit_extremes_weight_rounded <- admit_extremes %>%
-  filter(to_change == 'weight_rounded') %>%
-  mutate(new_value_n = as.numeric(new_value_n)) %>%
-  select(-new_value_c)
-
-admit_processed <- admit_processed %>%
-  left_join(admit_extremes_finalhl, by = c("uuid" = "uuid")) %>%
-  mutate(
-    finalhl = if_else(!is.na(new_value_n) & to_change == "finalhl", new_value_n, finalhl)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_processed <- admit_processed %>%
-  left_join(admit_extremes_hl_rounded, by = c("uuid" = "uuid")) %>%
-  mutate(
-    roundedhl = if_else(!is.na(new_value_n) & to_change == "hl_rounded", new_value_n, roundedhl)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_processed <- admit_processed %>%
-  left_join(admit_extremes_muac, by = c("uuid" = "uuid")) %>%
-  mutate(
-    muac = if_else(!is.na(new_value_n) & to_change == "muac", new_value_n, muac)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_processed <- admit_processed %>% 
-  left_join(admit_extremes_muac_status, by = c("uuid" = "uuid")) %>%
-  mutate(
-    ms_muac = if_else(!is.na(new_value_c) & to_change == "muac_status", new_value_c, ms_muac)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-admit_processed <- admit_processed %>% 
-  left_join(admit_extremes_wfh_maln_status, by = c("uuid" = "uuid")) %>%
-  mutate(
-    ms_wfh = if_else(!is.na(new_value_c) & to_change == "wfh_maln_status", new_value_c, ms_wfh)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-admit_processed <- admit_processed %>% 
-  left_join(admit_extremes_weight, by = c("uuid" = "uuid")) %>%
-  mutate(
-    weight = if_else(!is.na(new_value_n) & to_change == "weight", new_value_n, weight)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>%
-  left_join(admit_extremes_finalhl, by = c("id" = "uuid")) %>%
-  mutate(
-    hl = if_else(!is.na(new_value_n) & to_change == "finalhl", new_value_n, hl)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>%
-  left_join(admit_extremes_hl_rounded, by = c("id" = "uuid")) %>%
-  mutate(
-    hl_rounded = if_else(!is.na(new_value_n) & to_change == "hl_rounded", new_value_n, hl_rounded)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>%
-  left_join(admit_extremes_muac, by = c("id" = "uuid")) %>%
-  mutate(
-    muac = if_else(!is.na(new_value_n) & to_change == "muac", new_value_n, muac)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>% 
-  left_join(admit_extremes_muac_status, by = c("id" = "uuid")) %>%
-  mutate(
-    muac_status = if_else(!is.na(new_value_c) & to_change == "muac_status", new_value_c, muac_status)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>% 
-  left_join(admit_extremes_wfh_lookup_calc, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_lookup_calc = if_else(!is.na(new_value_c) & to_change == "wfh_lookup_calc", new_value_c, wfh_lookup_calc)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>% 
-  left_join(admit_extremes_wfh_maln_status, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_maln_status = if_else(!is.na(new_value_c) & to_change == "wfh_maln_status", new_value_c, wfh_maln_status)
-  ) %>%
-  select(-to_change, -new_value_c, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>% 
-  left_join(admit_extremes_wfh_sam_threshold, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_sam_threshold = as.numeric(wfh_sam_threshold),
-    wfh_sam_threshold = if_else(!is.na(new_value_n) & to_change == "wfh_sam_threshold", new_value_n, wfh_sam_threshold)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>% 
-  left_join(admit_extremes_wfh_mam_threshold, by = c("id" = "uuid")) %>%
-  mutate(
-    wfh_mam_threshold = as.numeric(wfh_mam_threshold),
-    wfh_mam_threshold = if_else(!is.na(new_value_n) & to_change == "wfh_mam_threshold", new_value_n, wfh_mam_threshold)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>% 
-  left_join(admit_extremes_weight, by = c("id" = "uuid")) %>%
-  mutate(
-    weight = as.numeric(weight),
-    weight = if_else(!is.na(new_value_n) & to_change == "weight", new_value_n, weight)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-admit_raw_2 <- admit_raw_2 %>% 
-  left_join(admit_extremes_weight_rounded, by = c("id" = "uuid")) %>%
-  mutate(
-    weight_rounded = as.numeric(weight_rounded),
-    weight_rounded = if_else(!is.na(new_value_n) & to_change == "weight_rounded", new_value_n, weight_rounded)
-  ) %>%
-  select(-to_change, -new_value_n)
-
-# TODO: do we need birthdate and age updates at inference time?
-
-#birthdate and subsequent age changes
-birthdate_changes <- read_sheet("https://docs.google.com/spreadsheets/d/1l_Xm4UeWqZNs5z5_QVS7pvHVSrCgOiLe6B3hcY7hIHw/edit?gid=0#gid=0") %>% 
-  as.data.frame() %>% 
-  select(-form, -pid)
-
-admit_processed <- admit_processed %>% 
-  mutate(enr_age = as.numeric(enr_age),
-         enr_approxage = as.numeric(enr_approxage),
-         birthdate = as.Date(birthdate))
-
-admit_raw_2 <- admit_raw_2 %>% 
-  mutate(age = as.numeric(age),
-         birthdate = as.Date(birthdate),
-         age_months_approx = as.numeric(age_months_approx))
-
-birthdate <- birthdate_changes %>%
-  filter(to_change == "birthdate")
-
-enr_approxage <- birthdate_changes %>%
-  filter(to_change == "enr_approxage") %>%
-  select(-new_date)
-
-age_ext <- birthdate_changes %>%
-  filter(to_change == "age")
-
-enr_age <- birthdate_changes %>%
-  filter(to_change == "enr_age")
-
-weekly_processed <- weekly_processed %>% 
-  mutate(wkl_age = as.numeric(wkl_age))
-
-admit_processed <- admit_processed %>%
-  left_join(enr_age, by = c("uuid" = "uuid")) %>% 
-  mutate(
-    enr_age = if_else(!is.na(new_value) & to_change == "enr_age", new_value, enr_age)) %>% 
-  select(-new_value, -new_date, -to_change) 
-
-admit_processed <- admit_processed %>%
-  left_join(birthdate, by = c("uuid" = "uuid")) %>%
-  mutate(
-    birthdate = if_else(!is.na(new_date) & to_change == "birthdate", new_date, birthdate)) %>% 
-  select(-new_value, -new_date, -to_change) 
-
-admit_processed <- admit_processed %>%
-  left_join(enr_approxage, by = c("uuid" = "uuid")) %>%
-  mutate(
-    enr_approxage = if_else(!is.na(new_value) & to_change == "enr_approxage", new_value, enr_approxage)) %>% 
-  select(-new_value, -to_change)
-
-admit_raw_2 <- admit_raw_2 %>%
-  left_join(enr_approxage, by = c("id" = "uuid")) %>%
-  mutate(
-    age_months_approx = if_else(!is.na(new_value) & to_change == "enr_approxage", new_value, age_months_approx)) %>% 
-  select(-new_value, -to_change)
-
-admit_raw_2 <- admit_raw_2 %>%
-  left_join(birthdate, by = c("id" = "uuid")) %>% 
-  mutate(
-    birthdate = if_else(!is.na(new_date) & to_change == "birthdate", new_date, birthdate)) %>% 
-  select(-new_value, -new_date, -to_change) 
-
-admit_raw_2 <- admit_raw_2 %>%
-  left_join(age_ext, by = c("id" = "uuid")) %>%
-  mutate(
-    age = if_else(!is.na(new_value) & to_change == "enr_age", new_value, age)) %>% 
-  select(-new_value, -new_date, -to_change)
-
-weekly_processed <- weekly_processed %>%
-  left_join(age_ext, by = c("uuid" = "uuid")) %>%
-  mutate(
-    wkl_age = if_else(!is.na(new_value) & to_change == "age", new_value, wkl_age)) %>% 
-  select(-new_value, -new_date, -to_change)
-
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(age_ext, by = c("id" = "uuid")) %>%
-  mutate(
-    age = if_else(!is.na(new_value) & to_change == "age", new_value, age)) %>% 
-  select(-new_value, -new_date, -to_change)
-
-# Removed z-scores
+weekly_raw_2 <- addWGSR(data = weekly_raw_2, 
+                        sex = "sex_num", 
+                        firstPart = "weight",
+                        secondPart = "age_zscore", 
+                        index = "wfa") 
 
 ## Co-occurring anthro deficiencies
 
