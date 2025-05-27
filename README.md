@@ -15,6 +15,18 @@ This codebase contains functionality for extracting, transforming, and loading (
 - `packages/inference`: Scripts for running inference on the prepared data.
 - `project.yml`: The configuration file defining the DigitalOcean Functions.
 
+## Cost
+
+DigitalOcean Functions pricing is described [here](https://www.digitalocean.com/pricing/functions#pricing). In short, the cost is RAM (GiB) times runtime (seconds), minus a 90k GiB $\cdot$ seconds allowance per month, times $0.0000185. I don't know yet how long the code runs or how much RAM it uses, but the table below shows some expected cost based on some assumptions.
+
+| Runs per month | Assumed RAM used | Assumed runtime | **Cost per month** |
+| -------------: | ---------------: | --------------: | -----------------: |
+|             30 |              1GB |          30 min |          **$0.00** |
+|             30 |              8GB |          15 min |          **$2.31** |
+|             30 |              4GB |          30 min |          **$2.31** |
+|             30 |              8GB |          30 min |          **$6.33** |
+|             30 |             16GB |          1 hour |         **$30.30** |
+
 ## Potential Issues
 
 DigitalOcean Functions do not have an R runtime. We may need to migrate Brianna's code to Python.
