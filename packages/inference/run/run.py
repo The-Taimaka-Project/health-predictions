@@ -6,7 +6,6 @@ this function when it is invoked. (The schedule is set in the `project.yml` file
 from typing import Dict
 
 # TODO: Import the necessary functions. E.g.,
-#   from util import some_util_function
 #   from etl import get_cleaned_data, create_weekly_data
 #   from etl_deterioration import create_time_series_data
 #   from inference import run_inference, save_predictions

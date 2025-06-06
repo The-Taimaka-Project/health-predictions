@@ -21,7 +21,7 @@ simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=pd.errors.SettingWithCopyWarning)
 
 
-# prompt: read google shared drive file
+# TODO: replace Google Drive with Postgres database
 
 from google.colab import drive
 
