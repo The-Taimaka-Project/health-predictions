@@ -1,38 +1,14 @@
 parameters: {}
-environment: {}
+environment: {}  # TODO: secret API keys for authenticating to Postgres and DO will populate here
 
 packages:
-    - name: etl
-      shared: false
-      environment: {}
-      parameters: {}
-      annotations: {}
-      functions:
-        - name: hello
-          binary: false
-          main: ""
-          runtime: python:default
-          web: true
-          webSecure: false
-          parameters: {}
-          environment: {}
-          annotations: {}
-          limits: {}
-
-          # schedule the function to run every minute
-          triggers:
-            - name: trigger-etl-every-minute
-              sourceType: scheduler
-              sourceDetails:
-                cron: "* * * * *"  # every minute
-
     - name: inference
       shared: false
       environment: {}
       parameters: {}
       annotations: {}
       functions:
-        - name: hello
+        - name: run
           binary: false
           main: ""
           runtime: python:default
@@ -42,3 +18,10 @@ packages:
           environment: {}
           annotations: {}
           limits: {}
+
+          # schedule the function to run every day
+          triggers:
+            - name: trigger-inference-every-day
+              sourceType: scheduler
+              sourceDetails:
+                cron: "0 0 * * *"  # every day at midnight UTC
