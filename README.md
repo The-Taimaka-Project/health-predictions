@@ -9,11 +9,38 @@ Authors:
 
 This codebase contains functionality for extracting, transforming, and loading (ETL) patient data to prepare it as input for downstream predictive models of patient outcomes, as well as running inference on this data using those models. DigitalOcean's [Functions](https://docs.digitalocean.com/products/functions/) are used to schedule ETL and inference jobs.
 
-## Structure
+## Files and Structure
+- `project.yml`: The configuration file defining how DigitalOcean Functions will run the code in this repo.
+- `packages`: DO Functions require a top-level directory named "packages".
+  - `packages/inference`: ETL scripts for preparing inference data and scripts for running inference on the prepared data.
+    - `packages/inference/run/run.py`: This is the entry point and contains the `main` function that DO will invoke.
+    - `packages/inference/run/etl.py`: Contains functions that load cleaned data from Postgres and returns weekly dataframes.
+    - `packages/inference/run/etl_deterioration.py`: Contains functions that take in weekly dataframes and return time series.
+    - `packages/inference/run/util.py`: Contains utility functions used throughout.
 
-- `packages/etl`: ETL scripts for preparing inference data.
-- `packages/inference`: Scripts for running inference on the prepared data.
-- `project.yml`: The configuration file defining the DigitalOcean Functions.
+The full directory structure is shown below. The `hello` directory contains code I was using to test DO Functions, and the `to_archive` directory contains the raw R&D code that was used to develop these models.
+```
+├── README.md
+├── project.yml
+├── packages
+│   └── inference
+│       ├── run
+│       │   ├── etl_deterioration.py
+│       │   ├── etl.py
+│       │   ├── run.py
+│       │   └── util.py
+│       └── hello
+│           └── hello.py
+└── to_archive
+    ├── data-update.R
+    ├── etl_deterioration.ipynb
+    └── etl.ipynb
+```
+
+## Schematic Diagrams
+
+![training](resources/training_schematic.png)
+![inference](resources/inference_schematic.png)
 
 ## Cost
 
