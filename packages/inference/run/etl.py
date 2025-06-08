@@ -4,8 +4,10 @@ and process it into weekly data.
 """
 
 from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress
-
+# set FAIL_MODE to True if exceptions should be raised
 FAIL_MODE = True
+# set TRAIN_MODE to True if rows should be dropped if weekly cadence skips more than 4 weeks (1% of weekly patients)
+TRAIN_MODE = False
 
 import os
 import pickle
@@ -16,6 +18,29 @@ import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
 from tqdm import tqdm
+
+import logging
+# Create a logger# Create a logger
+logger = logging.getLogger('my_logger')
+logger.setLevel(logging.DEBUG) # Set the minimum logging level
+
+# Create a handler to output logs to the console
+console_handler = logging.StreamHandler()
+
+file_handler = logging.FileHandler('my_log.log')
+file_handler.setLevel(logging.INFO) # Set the logging level for the handler
+
+
+# Create a formatter to specify the log message format
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s')
+
+# Add the formatter to the handler
+
+file_handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(file_handler)
+
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=pd.errors.SettingWithCopyWarning)
@@ -39,21 +64,20 @@ relapse = pd.read_csv(dir + "FULL_pba_relapse_raw2024-11-15.csv")
 mh = pd.read_csv(dir + "FULL_pba_mh_raw2024-11-15.csv")
 
 
-print(
-    weekly_raw.shape,
-    weekly_raw[["pid", "todate", "end_time"]].isnull().sum(),
-    weekly_raw[["pid", "todate", "end_time"]].notnull().sum(),
-)
-print("current", current.shape)
-print("admit", admit.shape)
-print("weekly", weekly.shape)
-print("raw", raw.shape)
-print("weekly", weekly_raw.shape)
-print("itp", itp.shape)
-print("relapse", relapse.shape)
-print("mh", mh.shape)
 
+logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
+logger.debug(f"weekly_raw null sums for pid, todate, end_time:\n{weekly_raw[['pid', 'todate', 'end_time']].isnull().sum()}")
+logger.debug(f"weekly_raw notnull sums for pid, todate, end_time:\n{weekly_raw[['pid', 'todate', 'end_time']].notnull().sum()}")
+logger.debug(f"current shape: {current.shape}")
+logger.debug(f"admit shape: {admit.shape}")
+logger.debug(f"weekly shape: {weekly.shape}")
+logger.debug(f"raw shape: {raw.shape}")
+logger.debug(f"weekly shape: {weekly_raw.shape}")
+logger.debug(f"itp shape: {itp.shape}")
+logger.debug(f"relapse shape: {relapse.shape}")
+logger.debug(f"mh shape: {mh.shape}")
 
+logger.info(weekly_raw[['pid', 'todate', 'end_time']].isnull().sum())
 if weekly_raw[["pid", "todate", "end_time"]].isnull().sum().sum() > 0 & FAIL_MODE:
     raise RuntimeError(
         "primary must be populated:  null values found in weekly_raw[['pid', 'todate', 'end_time']]."
@@ -61,9 +85,9 @@ if weekly_raw[["pid", "todate", "end_time"]].isnull().sum().sum() > 0 & FAIL_MOD
 
 # Check for duplicate pids in the 'admit' DataFrame
 duplicate_pids_admit = admit[admit.duplicated(subset=["pid"], keep=False)]
+logger.info(f"Duplicate pids found in 'admit' DataFrame: {duplicate_pids_admit['pid'].unique()}")
 
 # prompt: if not duplicate_pids_admit.empty throw a runtime exception
-
 if (not duplicate_pids_admit.empty) & FAIL_MODE:
     raise RuntimeError("Duplicate pids found in 'admit' DataFrame.")
 
@@ -78,16 +102,9 @@ def find_3val_bool(df):
                 size = df[col].size
                 sum = df[col].sum()
                 if null_ct > 0:
-                    print(
-                        f"Found 3-val bool column '{col}' with null count: {null_ct} {null_ct/size*100:.1f}% sum:{sum}"
-                    )
+                    logger.info(f"Found 3-val bool column '{col}' with null count: {null_ct} {null_ct/size*100:.1f}% sum:{sum}")
                 else:
-                    print(
-                        f"Found 3-val bool column '{col}' with null count: {df[col].isnull().sum()} sum:{sum}"
-                    )
-                # df[col] = df[col].fillna(False).astype(bool)
-                # df[col] = df[col].astype(bool)
-
+                    logger.info(f"Found 3-val bool column '{col}' with null count: {df[col].isnull().sum()} sum:{sum}")
 
 # prompt: convert detn columns with unique values [True nan False] to boolean
 
@@ -100,7 +117,7 @@ def convert_3val_bool(df, threshold):
             if all(val in [True, False] or pd.isna(val) for val in unique_vals):
                 null_ct = df[col].isnull().sum()
                 if null_ct < threshold:
-                    print(f"Converting 3-val bool column '{col}' with null count: {null_ct}")
+                    logger.info(f"Converting 3-val bool column '{col}' with null count: {null_ct}")
                     df[col] = df[col].fillna(False).astype(bool)
 
 
@@ -115,7 +132,7 @@ def convert_to_datetime(df):
         df_copy[col].fillna(pd.NaT, inplace=True)
         df_copy[col] = pd.to_datetime(df_copy[col], errors="coerce").dt.tz_localize(None)
         df_copy[col].fillna(pd.NaT, inplace=True)
-        print(col, df_copy[col].dtypes)
+        logger.debug(f'{col} {df_copy[col].dtypes}')
     return df_copy
 
 
@@ -148,8 +165,9 @@ mh = convert_to_datetime(mh)
 # Sort by muac, age, initial_dx and then deduplicate on pid, admit_date, outcome_date so the record selection is determinative
 itp_sorted = itp.sort_values(["muac", "age", "initial_dx"])
 itp_deduped = itp_sorted.drop_duplicates(subset=["pid", "admit_date", "outcome_date"], keep="first")
-print(itp_sorted.shape)
-print(itp_deduped.shape)
+
+logger.info(itp_sorted.shape)
+logger.info(itp_deduped.shape)
 
 
 if (itp_sorted.shape[0] != itp_deduped.shape[0]) & FAIL_MODE:
@@ -175,12 +193,12 @@ duplicate_pids = death_cases[death_cases.duplicated(subset=["pid"], keep=False)]
 
 # Print the duplicate pids if any are found
 if not duplicate_pids.empty:
-    print("Duplicate pids found for outcome 'Death':")
-    print(duplicate_pids["pid"].unique())
+    logger.error("Duplicate pids found for outcome 'Death':")
+    logger.error(duplicate_pids["pid"].unique())
     if FAIL_MODE:
         raise RuntimeError("Duplicate itp pids found for outcome 'Death'.")
 else:
-    print("No duplicate pids found for outcome 'Death'.")
+    logger.info("No duplicate pids found for outcome 'Death'.")
 
 
 # prompt: deduplicate death_cases on pid using the highest admit_date, just to be safe
@@ -229,17 +247,15 @@ itp_series.columns = [f"itp{y}_{x}" for x, y in itp_series.columns]
 
 
 itp_series = itp_series.reset_index()
-# print(itp_series.shape)
-# print(itp_series.columns)
-# print(print(itp_series[itp_series['pid'] == '23-0212'][['itp1_admit_date','itp2_admit_date','itp3_admit_date']]))
 
 # prompt: drop status column from raw
 # as it's all nulls and gets confused with current.status
 
-print("raw", raw.shape)
+logger.debug(f"raw shape: {raw.shape}")
 raw = raw.drop("status", axis=1)
 raw.drop("glbsite", axis=1, inplace=True)
-print("raw", raw.shape)
+logger.debug(f"raw shape: {raw.shape}")
+
 
 
 for col in [col for col in raw.columns if "threshold" in col]:
@@ -290,15 +306,12 @@ cols_to_drop = [
 
 raw = raw.drop([col for col in cols_to_drop if col in raw.columns], axis=1)
 
-
-print("raw", raw.shape)
-
+logger.debug(f"raw shape: {raw.shape}")
 
 # prompt: find duplicated pid in admit_raw
-
 # Find duplicate pids in admit_raw
 duplicated_pids_raw = raw[raw.duplicated(subset=["pid"], keep=False)]["pid"].unique()
-print(duplicated_pids_raw.size)
+logger.debug(f"duplicated_pids_raw: {duplicated_pids_raw.size} {duplicated_pids_raw}")
 if (duplicated_pids_raw.size > 0) & FAIL_MODE:
     raise RuntimeError(f"{duplicated_pids_raw.size} duplicate pids found in admit_raw.")
 
@@ -306,11 +319,10 @@ if (duplicated_pids_raw.size > 0) & FAIL_MODE:
 # first row of group is latest start_time, most recent for a todate
 raw = raw.sort_values(["pid", "todate", "start_time"], ascending=[True, False, False])
 # diarrhea null rate is 0.091659 for todate descending and ascending so use descending to get the most recent
-print("raw", raw.shape)
+logger.debug(f"raw shape: {raw.shape}")
 # Group by pid and, then take the first row (latest todate, start_time) within each group
 raw = raw.groupby(["pid"], as_index=False).first()
-print("raw", raw.shape)
-
+logger.debug(f"raw shape: {raw.shape}")
 
 # prompt: raw['emergency_admission']=1 if pid in duplicated_pids_raw
 
@@ -321,7 +333,7 @@ raw["emergency_admission"] = raw["pid"].isin(duplicated_pids_raw).astype(int)
 duplicate_raw_ids = raw[raw.duplicated(subset=["uuid"], keep=False)]
 
 # prompt: if duplicate_raw_ids not empty raise runtime exception
-
+logger.debug(f"duplicated_pids_raw: {duplicate_raw_ids.size} {duplicate_raw_ids}")
 if (not duplicate_raw_ids.empty) & FAIL_MODE:
     raise RuntimeError(f"{duplicate_raw_ids.size} duplicate raw['id'] found for a pid.")
 
@@ -330,12 +342,13 @@ if (not duplicate_raw_ids.empty) & FAIL_MODE:
 # if so, drop them as they add no value, eliminates 80 columns
 
 cols_with_one_nunique = [col for col in raw.columns if raw[col].nunique() == 1]
-print(len(cols_with_one_nunique), cols_with_one_nunique)
+logger.debug(f"Number of columns with one unique value: {len(cols_with_one_nunique)}")
+logger.debug(f"Columns with one unique value: {cols_with_one_nunique}")
 
 # then drop them
-print("raw", raw.shape)
+logger.debug(f"raw shape: {raw.shape}")
 raw.drop(cols_with_one_nunique, axis=1, inplace=True)
-print("raw", raw.shape)
+logger.debug(f"raw shape: {raw.shape}")
 
 # Replace 'resp_rate' values greater than 300 with 'resp_rate_2' values
 weekly_raw.loc[weekly_raw["resp_rate"] > 300, "resp_rate"] = weekly_raw["resp_rate_2"]
@@ -349,26 +362,26 @@ weekly_raw = weekly_raw.drop(
 
 # only 3 muac rows values differ and only 2 weight row values differ between weekly_raw and weekly so they can be dropped too
 weekly_raw = weekly_raw.drop(["muac", "weight"], axis=1)
-print("weekly_raw", weekly_raw.shape)
+logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
 
 # prompt: find the 304 columns in weekly_raw that are all nulls and drop them
 
 null_cols = weekly_raw.columns[weekly_raw.isnull().all()].tolist()
-print(len(null_cols), null_cols)
-print("weekly_raw", weekly_raw.shape)
+logger.debug(f"Number of null columns in weekly_raw: {len(null_cols)}")
+logger.debug(f"Null columns in weekly_raw: {null_cols}")
+logger.debug(f"weekly_raw shape before dropping null columns: {weekly_raw.shape}")
 weekly_raw.drop(null_cols, axis=1, inplace=True)
-print("weekly_raw", weekly_raw.shape)
-
+logger.debug(f"weekly_raw shape after dropping null columns: {weekly_raw.shape}")
 # prompt: are there any columns in relapse that have only 1 nunique()?
 # if so, drop them as they add no value, eliminates 45 columns
 
 cols_with_one_nunique = [col for col in weekly_raw.columns if weekly_raw[col].nunique() == 1]
-print(len(cols_with_one_nunique), cols_with_one_nunique)
+logger.debug(f"{len(cols_with_one_nunique)} {cols_with_one_nunique}")
 
 # then drop them
-print("weekly_raw", weekly_raw.shape)
+logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
 weekly_raw.drop(cols_with_one_nunique, axis=1, inplace=True)
-print("weekly_raw", weekly_raw.shape)
+logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
 
 
 # prompt: find all cat2 and cat2 prefixed columns in raw (weekly_raw has the same, too.)
@@ -386,14 +399,14 @@ cat_1_2_cols_weekly = cat1_cols_raw_weekly + cat2_cols_raw_weekly
 # Find columns in cat_1_2_cols_weekly that are NOT in cat_1_2_cols
 cols_not_in_admit = set(cat_1_2_cols_weekly) - set(cat_1_2_cols)
 
-print(f"Columns in 'cat_1_2_cols_weekly' but not in 'cat_1_2_cols': {cols_not_in_admit}")
+logger.debug(f"Columns in 'cat_1_2_cols_weekly' but not in 'cat_1_2_cols': {cols_not_in_admit}")
 
 # prompt: find cat_1_2_cols not in cat_1_2_cols_weekly
 
 # Find columns in cat_1_2_cols that are NOT in cat_1_2_cols_weekly
 cols_not_in_weekly = set(cat_1_2_cols) - set(cat_1_2_cols_weekly)
 
-print(f"Columns in 'cat_1_2_cols' but not in 'cat_1_2_cols_weekly': {cols_not_in_weekly}")
+logger.debug(f"Columns in 'cat_1_2_cols' but not in 'cat_1_2_cols_weekly': {cols_not_in_weekly}")
 
 # prompt: get row with first todate by pid for weekly_raw
 
@@ -438,36 +451,32 @@ cat_1_2_cols_updated = [col + "_first_todate" for col in cat_1_2_cols]
 
 # prompt: for each col in diarrhea_cols raw_first_weekly fillna with col+'_first_todate'
 
-print("raw", raw.shape)
+logger.debug(f'raw {raw.shape}')
 for col in cat_1_2_cols:
     raw_first_weekly[col] = raw_first_weekly[col].fillna(raw_first_weekly[col + "_first_todate"])
 
 raw = raw_first_weekly.drop(columns=cat_1_2_cols_updated)
-print("raw", raw.shape)
+logger.debug(f'raw {raw.shape}')
 
 # prompt: find the 6 columns in admit that are all nulls and drop them
 
 null_cols = admit.columns[admit.isnull().all()].tolist()
-print(len(null_cols), null_cols)
-print("admit", admit.shape)
+logger.debug(f"Number of null columns in admit: {len(null_cols)}")
+logger.debug(f"Null columns in admit: {null_cols}")
+logger.debug(f"admit shape before dropping null columns: {admit.shape}")
 admit.drop(null_cols, axis=1, inplace=True)
-print("admit", admit.shape)
-
+logger.debug(f"admit shape after dropping null columns: {admit.shape}")
 # prompt: find site where admit['site'] != admit['site'].str.rstrip()
 
 # find site where admit['site'] != admit['site'].str.rstrip()
-non_stripped_sites = admit[admit["site"] != admit["site"].str.rstrip()]
-
+non_stripped_sites = admit[admit['site'] != admit['site'].str.rstrip()]
 if not non_stripped_sites.empty:
-    print("Rows where 'site' column has trailing whitespace:")
-    print(non_stripped_sites[["pid", "site"]].head())
+    logger.error("Rows where 'site' column has trailing whitespace:")
+    logger.error(non_stripped_sites[['pid', 'site']].head())
     if FAIL_MODE:
-        raise RuntimeError(
-            f"{non_stripped_sites.size} admit rows found where 'site' column has trailing whitespace."
-        )
+        raise RuntimeError(f"{non_stripped_sites.size} admit rows found where 'site' column has trailing whitespace.")
 else:
-    print("No rows found where 'site' column has trailing whitespace after stripping.")
-
+    logger.info("No rows found where 'site' column has trailing whitespace after stripping.")
 
 admit.drop("autosite", axis=1, inplace=True)
 
@@ -475,17 +484,16 @@ admit.drop("autosite", axis=1, inplace=True)
 # if so, drop them as they add no value, eliminates 10 columns
 
 cols_with_one_nunique = [col for col in admit.columns if admit[col].nunique() == 1]
-print(len(cols_with_one_nunique), cols_with_one_nunique)
-print("admit", admit.shape)
+logger.debug(f"{len(cols_with_one_nunique)} {cols_with_one_nunique}")
+logger.debug(f"admit {admit.shape}")
 # then drop them
 admit.drop(cols_with_one_nunique, axis=1, inplace=True)
-print("admit", admit.shape)
+logger.debug(f"admit {admit.shape}")
 
 
 # these have little or no change to admit so drop them
 current.drop(["b_phoneconsent", "cleaning_note", "langpref"], axis=1, inplace=True)
-print("current", current.shape)
-
+logger.debug(f"current {current.shape}")
 
 # prompt: change active - awaiting PID to active for current.status
 
@@ -594,13 +602,15 @@ admit["uuid"] = admit["uuid"].str.replace("uuid:", "", regex=False)
 weekly["uuid"] = weekly["uuid"].str.replace("uuid:", "", regex=False)
 
 
-if (admit["uuid"].isnull().sum() > 0) & FAIL_MODE:
+logger.debug(f"admit['uuid'].isnull().sum() before check: {admit['uuid'].isnull().sum()}")
+if (admit['uuid'].isnull().sum() > 0) & FAIL_MODE:
     raise RuntimeError(f"admit['uuid'] contains {admit['uuid'].isnull().sum()} nulls.")
-if (weekly["uuid"].isnull().sum() > 0) & FAIL_MODE:
+logger.debug(f"weekly['uuid'].isnull().sum() before check: {weekly['uuid'].isnull().sum()}")
+if (weekly['uuid'].isnull().sum() > 0) & FAIL_MODE:
     raise RuntimeError(f"weekly['uuid'] contains {weekly['uuid'].isnull().sum()} nulls.")
-if (raw["uuid"].isnull().sum() > 0) & FAIL_MODE:
+logger.debug(f"raw['uuid'].isnull().sum() before check: {raw['uuid'].isnull().sum()}")
+if (raw['uuid'].isnull().sum() > 0) & FAIL_MODE:
     raise RuntimeError(f"raw['id'] contains {raw['uuid'].isnull().sum()} nulls.")
-
 
 # prompt: if raw['uuid'] is null set it to raw['pid'], 3 rows in admit and raw have null uuid but their PIDs are the same 3
 
@@ -611,7 +621,7 @@ if (raw["uuid"].isnull().sum() > 0) & FAIL_MODE:
 # will eliminate confusion and not longer need to use admit_pid vs raw_pid column names post join to disambiguate
 raw = raw.drop("pid", axis=1)
 
-print("weekly", weekly.shape)
+logger.debug(f"weekly {weekly.shape}")
 weekly_row_ct = weekly.shape[0]
 
 # prompt: deduplicate weekly on set=['pid','calcdate'] and use the greatest md_submission
@@ -625,7 +635,7 @@ weekly = (
 )
 
 
-print("weekly", weekly.shape)
+logger.debug(f"weekly_row_ct {weekly_row_ct} weekly shape {weekly.shape}")
 if (weekly_row_ct > weekly.shape[0]) & FAIL_MODE:
     raise RuntimeError(
         f"weekly processed has {weekly_row_ct - weekly.shape[0]} duplicated pid/calcdate rows."
@@ -635,7 +645,7 @@ if (weekly_row_ct > weekly.shape[0]) & FAIL_MODE:
 # (If you group weekly_raw by pid and count number of duplicated todate by pid, there are 38 of them.)
 
 # Deduplicate weekly raw data based on 'pid' and 'todate', keeping the row with the greatest 'end_time'
-print("weekly", weekly_raw.shape)
+logger.debug(f"weekly {weekly_raw.shape}")
 weekly_row_ct = weekly_raw.shape[0]
 weekly_raw = (
     weekly_raw.sort_values(["pid", "todate", "end_time"], ascending=[True, True, False])
@@ -644,7 +654,7 @@ weekly_raw = (
     .reset_index()
 )
 
-print(weekly_raw.shape)
+logger.debug(f"weekly_row_ct {weekly_row_ct} weekly_raw shape {weekly_raw.shape}")
 if (weekly_row_ct > weekly_raw.shape[0]) & FAIL_MODE:
     raise RuntimeError(
         f"weekly raw has {weekly_row_ct - weekly_raw.shape[0]} duplicated pid/todate rows."
@@ -695,7 +705,6 @@ weekly["hl_diff_rate"] = weekly["hl_diff"] / weekly["calcdate_diff"]
 
 
 # Print the updated DataFrame with lagged values
-# print(weekly[['pid', 'calcdate', 'muac', 'muac_lag', 'weight', 'weight_lag','muac_diff','weight_diff','calcdate_diff','muac_diff_rate','weight_diff_rate']])
 
 # prompt: group weekly by pid and create a dataframe with row_count,min(weight),max(weight),average(weight),min(muac),max(muac),average(muac) per pid
 
@@ -770,10 +779,8 @@ weekly_agg["wfa_diff_ratio_rate"] = weekly_agg["wfa_diff_ratio"] / weekly_agg["c
 # itp.describe()
 # prompt: print itp_agg for pid == '23-0212'
 
-# print(weekly_agg.loc['23-0811'])
 # prompt: print row in itp_deduped for pid == '23-0212'
 
-# print(weekly[weekly['pid'] == '23-0811'][['pid','calcdate','muac','weight']])
 weekly_agg.reset_index(inplace=True)
 
 # find_collinear_columns(weekly_agg,threshold=0.95,col_ct_threshold=10)
@@ -790,23 +797,23 @@ weekly = weekly.sort_values(["pid", "calcdate"])
 
 relapse["todate"] = pd.to_datetime(relapse["todate"])
 relapse["todate_month"] = relapse["todate"].dt.to_period("M")
-print(relapse["todate_month"].value_counts())
-print(relapse["todate"].min())
-print(relapse["todate"].max())
+logger.debug(relapse["todate_month"].value_counts())
+logger.debug(relapse["todate"].min())
+logger.debug(relapse["todate"].max())
 relapse.drop("todate_month", axis=1, inplace=True)
 
 # prompt: find the 6 columns in relapse that are all nulls and drop them
 # eliminates 76 columns
 
 null_cols = relapse.columns[relapse.isnull().all()].tolist()
-print(null_cols)
+logger.debug(null_cols)
 relapse.drop(null_cols, axis=1, inplace=True)
 
 # prompt: are there any columns in relapse that have only 1 nunique()? put those column names in a list
 # eliminates 85 columns
 
 cols_with_one_nunique = [col for col in relapse.columns if relapse[col].nunique() == 1]
-print(cols_with_one_nunique)
+logger.debug(cols_with_one_nunique)
 
 # then drop them
 relapse.drop(cols_with_one_nunique, axis=1, inplace=True)
@@ -815,18 +822,16 @@ relapse.drop(cols_with_one_nunique, axis=1, inplace=True)
 # so we can group by submission day
 relapse["todate"] = pd.to_datetime(relapse["todate"]).dt.date
 
-FAIL_MODE = False
-
 # prompt: deduplicate relapse on pid, submission_date
 # this doesn't do anything for the training data but ensures that only one row per submission day per pid
 
 # Sort relapse by 'pid' and 'submission_date' to ensure consistent deduplication
 relapse_sorted = relapse.sort_values(["pid", "todate"])
-print("relapse_sorted", relapse_sorted.shape)
+logger.debug(f'relapse_sorted {relapse_sorted.shape}')
 row_ct = relapse_sorted.shape[0]
 # Drop duplicates, keeping the first occurrence for each 'pid' and 'todate'
 relapse_deduped = relapse_sorted.drop_duplicates(subset=["pid", "todate"], keep="first")
-print(relapse_deduped.shape)
+logger.debug(f'row_ct {row_ct} relapse_duduped {relapse_deduped.shape}')
 if (row_ct > relapse_deduped.shape[0]) & FAIL_MODE:
     raise RuntimeError(f"relapse {row_ct - relapse_deduped.shape[0]} duplicated pid/todate rows.")
 
@@ -890,10 +895,6 @@ relapse_agg = relapse.groupby("pid").agg(
 )
 
 
-# print(relapse_agg.loc['24-2039'])
-# prompt: print row in itp_deduped for pid == '23-0212'
-
-# print(relapse[relapse['pid'] == '24-2039'][['pid','age','todate','muac','weight']])
 relapse_agg.reset_index(inplace=True)
 
 # TODO, make this run faster by removing the slow apply lambda function, will save 1 minute runtime
@@ -913,15 +914,13 @@ relapse_series.columns = [f"relapse{y}_{x}" for x, y in relapse_series.columns]
 
 
 relapse_series = relapse_series.reset_index()
-print(relapse_series.shape)
-# print(relapse_series.columns)
-# print(relapse_series[relapse_series['pid']== '24-2039'][['relapse1_todate','relapse2_todate','relapse3_todate']])
+logger.debug(relapse_series.shape)
 
 mh["todate"] = pd.to_datetime(mh["todate"])
 mh["todate_month"] = mh["todate"].dt.to_period("M")
-print(mh["todate_month"].value_counts())
-print(mh["todate"].min())
-print(mh["todate"].max())
+logger.debug(mh["todate_month"].value_counts())
+logger.debug(mh["todate"].min())
+logger.debug(mh["todate"].max())
 mh.drop("todate_month", axis=1, inplace=True)
 
 # prompt: does mh have duplicate pid
@@ -930,12 +929,12 @@ mh.drop("todate_month", axis=1, inplace=True)
 duplicate_pids_mh = mh[mh.duplicated(subset=["pid"], keep=False)]
 
 if not duplicate_pids_mh.empty:
-    print("Duplicate pids found in 'mh' DataFrame:")
-    print(duplicate_pids_mh["pid"].value_counts())
+    logger.error("Duplicate pids found in 'mh' DataFrame:")
+    logger.error(duplicate_pids_mh["pid"].value_counts())
     if FAIL_MODE:
         raise ValueError("Duplicate pids found in mental health.")
 else:
-    print("No duplicate pids found in 'mh' DataFrame.")
+    logger.debug("No duplicate pids found in 'mh' DataFrame.")
 
 # Drop duplicates, keeping the first occurrence for each 'pid'
 # 4/25 is the todate for the duplicated pid so no need to sort mh on todate
@@ -947,13 +946,13 @@ mh = mh.drop_duplicates(subset=["pid"], keep="first")
 # prompt: find the 129 columns in mh that are all nulls and drop them
 
 null_cols = mh.columns[mh.isnull().all()].tolist()
-print(null_cols)
+logger.debug(null_cols)
 mh.drop(null_cols, axis=1, inplace=True)
 
 # prompt: are there any columns in mh that have only 1 nunique()? put those column names in a list and drop them
 
 cols_with_one_nunique = [col for col in mh.columns if mh[col].nunique() == 1]
-print(cols_with_one_nunique)
+logger.debug(cols_with_one_nunique)
 
 # then drop them, 24 columns# Merge mental health
 mh.drop(cols_with_one_nunique, axis=1, inplace=True)
@@ -978,8 +977,8 @@ mh[cols_with_two_nunique].isnull().sum().sort_values(ascending=False)
 
 # Assuming 'relapse' DataFrame is available from the previous code
 number_cols = mh.select_dtypes(include=["number"]).columns
-print(number_cols)
-print(mh.select_dtypes(include=["boolean"]).columns)
+logger.debug(number_cols)
+logger.debug(mh.select_dtypes(include=["boolean"]).columns)
 
 mh = convert_to_bool(mh)
 
@@ -989,8 +988,6 @@ find_3val_bool(mh)
 convert_3val_bool(mh, len(mh))
 
 find_collinear_columns(mh, threshold=0.99, col_ct_threshold=20)
-
-mh[["calc_numaddtlchildren", "num_children"]].value_counts()
 
 # drop calc_numaddtlchildren as it's just num_children - 1
 mh.drop("calc_numaddtlchildren", axis=1, inplace=True)
@@ -1002,10 +999,10 @@ mh.drop("calc_numaddtlchildren", axis=1, inplace=True)
 
 # Sort raw by uuid, starttime, and deduplicate on uuid, keeping the first row
 raw = raw.sort_values(["uuid", "start_time"], ascending=[True, False])
-print(raw.shape)
+logger.debug(raw.shape)
 row_ct = raw.shape[0]
 raw = raw.drop_duplicates(subset=["uuid"], keep="first")
-print(raw.shape)
+logger.debug(f'row_ct {row_ct} raw.shape {raw.shape}')
 if (row_ct > raw.shape[0]) & FAIL_MODE:
     raise RuntimeError(f"raw has {row_ct - raw.shape[0]} duplicated id rows.")
 
@@ -1013,25 +1010,25 @@ if (row_ct > raw.shape[0]) & FAIL_MODE:
 
 # inner join keeps all the rows because uuid has been massaged in both admit and raw to match (uuid: stripped off in both)
 admit_raw1 = pd.merge(admit, raw, on="uuid", how="inner", suffixes=("_admit", "_raw"))
-print(admit_raw1.shape)
+logger.debug(admit_raw1.shape)
 
 # Merge admit and current data on 'pid' with a inner join as current and admit have the same number of rows so left join unnecessary
 admit_current = pd.merge(
     admit_raw1, current, on="pid", how="inner", suffixes=("_admit", "_current")
 )
-print(admit_current.shape)
+logger.debug(admit_current.shape)
 
 # Merge weekly aggregate stats
 admit_current = pd.merge(
     admit_current, weekly_agg, on="pid", how="left", suffixes=("_admit", "_weekly_agg")
 )
-print(admit_current.shape)
+logger.debug(admit_current.shape)
 
 # Merge itp_roster aggregate stats
 admit_current = pd.merge(
     admit_current, itp_agg, on="pid", how="left", suffixes=("_admit", "_itp_agg")
 )
-print(admit_current.shape)
+logger.debug(admit_current.shape)
 
 # add the length of stay (in days) for the death cases as an attribute of admit since only one itp death row per patient
 admit_current = pd.merge(
@@ -1041,24 +1038,24 @@ admit_current = pd.merge(
     how="left",
     suffixes=("_admit", "_itp"),
 )
-print(admit_current.shape)
+logger.debug(admit_current.shape)
 
 # Merge up to 3 itp_roster flattened (rows turned into column groups) rows
 admit_current = pd.merge(
     admit_current, itp_series, on="pid", how="left", suffixes=("_admit", "_itp_series")
 )
-print(admit_current.shape)
+logger.debug(admit_current.shape)
 
 
 # Merge mental health
 admit_current_mh = pd.merge(admit_current, mh, on="pid", how="inner", suffixes=("_admit", "_mh"))
-print(admit_current_mh.shape)
+logger.debug(admit_current_mh.shape)
 
 # Merge relapse aggregate stats
 admit_current_relapse = pd.merge(
     admit_current, relapse_agg, on="pid", how="inner", suffixes=("_admit", "_relapse_agg")
 )
-print(admit_current_relapse.shape)
+logger.debug(admit_current_relapse.shape)
 
 # Merge up to 3 relapse flattened (rows turned into column groups) rows
 admit_current_relapse = pd.merge(
@@ -1068,21 +1065,12 @@ admit_current_relapse = pd.merge(
     how="inner",
     suffixes=("_admit", "_relapse_series"),
 )
-print(admit_current_relapse.shape)
+logger.debug(admit_current_relapse.shape)
 
 # Print some info
-print(
-    admit.shape,
-    current.shape,
-    raw.shape,
-    weekly_agg.shape,
-    itp_agg.shape,
-    itp_series.shape,
-    relapse_series.shape,
-    mh.shape,
-)
-print(admit_current.shape, admit_current_mh.shape, admit_current_relapse.shape)
+logger.debug(f'{admit.shape}, {current.shape}, {raw.shape}, {weekly_agg.shape}, {itp_agg.shape}, {itp_series.shape}, {relapse_series.shape}, {mh.shape}')
 
+logger.debug(f'{admit_current.shape},{admit_current_mh.shape},{admit_current_relapse.shape}')
 
 # prompt: column names that are in both weekly and weekly_raw
 
@@ -1104,11 +1092,11 @@ weekly_raw.rename(columns={"todate": "calcdate"}, inplace=True)
 weekly_joined = pd.merge(
     weekly, weekly_raw, on=["pid", "calcdate"], suffixes=["_processed", "_raw"], how="inner"
 )
-print(weekly_joined.shape)
-print(weekly_raw.shape)
-print(weekly.shape)
+logger.debug(weekly_joined.shape)
+logger.debug(weekly_raw.shape)
+logger.debug(weekly.shape)
 
-print(admit_current.shape)
+logger.debug(admit_current.shape)
 collinear_columns_to_drop = [
     "age_admit",
     "age_raw",
@@ -1147,7 +1135,7 @@ collinear_columns_to_drop = [
 admit_current = admit_current.drop(
     columns=[col for col in collinear_columns_to_drop if col in admit_current.columns]
 )
-print(admit_current.shape)
+logger.debug(admit_current.shape)
 
 
 # find_collinear_columns(admit_current,threshold=0.99,col_ct_threshold=100)
@@ -1167,7 +1155,7 @@ weekly_joined = weekly_joined.drop(
     columns=[col for col in weekly_collinear_columns_to_drop if col in weekly_joined.columns]
 )
 
-print(weekly_joined.shape)
+logger.debug(weekly_joined.shape)
 
 
 # find_collinear_columns(weekly_joined,threshold=0.99,col_ct_threshold=10)
@@ -1437,8 +1425,7 @@ for index, row in tqdm(rows_to_duplicate.iterrows()):
     new_row["interpolated"] = True
     new3_rows = pd.concat([new3_rows, new_row])
 
-
-print("weekly_joined", weekly_joined.shape)
+logger.debug(f'weekly_joined {weekly_joined.shape}')
 
 df = pd.concat([weekly_joined, new1_rows, new2_rows, new3_rows])
 
@@ -1449,14 +1436,7 @@ df = pd.concat([weekly_joined, new1_rows, new2_rows, new3_rows])
 df = df.astype(weekly_joined.dtypes)
 weekly_joined = df.copy()
 
-print("weekly_joined", weekly_joined.shape)
-
-
-# weekly_joined = pd.concat([weekly_joined,new1_rows,new2_rows,new3_rows])
-
-# weekly_joined['calcdate'] = pd.to_datetime(weekly_joined['calcdate'])
-
-# df.reset_index(drop=False, inplace=True)
+logger.debug(f'weekly_joined {weekly_joined.shape}')
 
 # Sort the DataFrame by 'pid' and 'calcdate_weekly'
 weekly_joined = weekly_joined.sort_values(["pid", "calcdate"])
@@ -1515,9 +1495,11 @@ pids_to_delete = [pid for pid in pids_to_delete if pid not in pids_with_one_row]
 
 
 # prompt: drop rows in weekly_joined if weekly_joined['pid'].isin(pids_to_delete)
-print(weekly_joined.shape)
-weekly_joined = weekly_joined[~weekly_joined["pid"].isin(pids_to_delete)]
-print(weekly_joined.shape)
+TRAIN_MODE = True
+if TRAIN_MODE:
+  logger.debug(weekly_joined.shape)
+  weekly_joined = weekly_joined[~weekly_joined['pid'].isin(pids_to_delete)]
+  logger.debug(weekly_joined.shape)
 
 # prompt: add a column called sequence_num order of calcdate within pid in weekly_joined
 
@@ -1584,7 +1566,7 @@ anthros.drop(columns=["days_since_first"], inplace=True)
 
 
 for anthro_col in ["hl", "wfh", "hfa", "wfa", "weight", "muac"]:
-    print(anthro_col)
+    logger.debug(anthro_col)
     # prompt: for each pid in admit call regress and add the first return value as f'{anthro_col}_trend'" and second as f'{anthro_col}_rsquared columns in admit
 
     # Apply the function to each unique 'pid' and create new columns
@@ -1630,11 +1612,7 @@ admit_weekly["calcdate_admit_current"] = pd.to_datetime(admit_weekly["calcdate_a
 admit_weekly["calcdate_diff_weekly"] = admit_weekly.groupby("pid")["calcdate_weekly"].diff().dt.days
 
 # Print some info
-print(admit_weekly.shape)
-
-# prompt: find the last column in admit_current
-# print(admit_weekly.columns[-1])
-
+logger.debug(admit_weekly.shape)
 
 # maor assumption that null, missing, is false
 admit_current = convert_to_bool(admit_current)
@@ -1682,10 +1660,10 @@ weekly_joined.drop(columns=["row_count"], inplace=True)
 
 duplicate_pids = admit_current[admit_current.duplicated(subset=["pid"], keep=False)]["pid"]
 if duplicate_pids.empty:
-    print("No duplicate pids found in admit_current.")
+    logger.debug("No duplicate pids found in admit_current.")
 else:
-    print("Duplicate pids found in admit_current:")
-    print(duplicate_pids.value_counts())
+    logger.critical("Duplicate pids found in admit_current:")
+    logger.critical(duplicate_pids)
 # prompt: abort if duplicate pids found in admit_current
 
 if not duplicate_pids.empty:
@@ -1701,21 +1679,20 @@ duplicate_rows = admit_weekly[
 ]
 
 if duplicate_rows.empty:
-    print("No duplicate ['pid', 'calcdate'] found in admit_weekly.")
+    logger.debug("No duplicate ['pid', 'calcdate'] found in admit_weekly.")
 else:
-    print("Duplicate ['pid', 'calcdate'] found in admit_weekly:")
-    print(duplicate_rows[["pid", "calcdate_weekly"]])
+    logger.critical("Duplicate ['pid', 'calcdate'] found in admit_weekly:")
+    logger.critical(duplicate_rows[["pid", "calcdate_weekly"]])
 
 if not duplicate_rows.empty:
     raise ValueError("Duplicate rows found in left_admit_weekly. Aborting.")
 
 
-print(admit_current.shape, admit_current_mh.shape, admit_current_relapse.shape, admit_weekly.shape)
-# (5215, 999) (1762, 1453) (645, 2743) (34060, 1400)
+logger.debug(f'{admit_current.shape},{admit_current_mh.shape},{admit_current_relapse.shape}, {admit_weekly.shape}')
 
 # prompt: admit_raw is first 928 columns of admit_current
 first_current_column = admit_current.columns.get_loc("phoneowner_current")
-print(admit_current.columns[first_current_column - 1])
+logger.debug(admit_current.columns[first_current_column - 1])
 
 admit_raw = admit_current.iloc[:, :first_current_column].copy()
 
@@ -1744,14 +1721,9 @@ def write_to_analysis():
         pickle.dump(admit_raw, f)
 
 
-print(admit_current.shape, admit_current_mh.shape, admit_current_relapse.shape, admit_weekly.shape)
+logger.debug(f'shapes: {admit_current.shape},{admit_current_mh.shape},{admit_current_relapse.shape}, {admit_weekly.shape}')
 
-print(
-    admit_current["pid"].nunique(),
-    admit_current_mh["pid"].nunique(),
-    admit_current_relapse["pid"].nunique(),
-    admit_weekly["pid"].nunique(),
-)
+logger.debug(f"pid ct: {admit_current['pid'].nunique()},{admit_current_mh['pid'].nunique()},{admit_current_relapse['pid'].nunique()}, {admit_weekly['pid'].nunique()}")
 
 
 dir = "/content/drive/My Drive/[PBA] Data/"
