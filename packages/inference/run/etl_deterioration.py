@@ -14,6 +14,30 @@ from google.colab import drive
 from tqdm import tqdm
 from util import convert_bool_to_int, infer_phq_score, regress
 
+import logging
+# Create a logger# Create a logger
+logger = logging.getLogger('my_logger')
+logger.setLevel(logging.DEBUG) # Set the minimum logging level
+
+# Create a handler to output logs to the console
+console_handler = logging.StreamHandler()
+
+file_handler = logging.FileHandler('my_log.log')
+file_handler.setLevel(logging.INFO) # Set the logging level for the handler
+
+
+# Create a formatter to specify the log message format
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s')
+
+# Add the formatter to the handler
+
+file_handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(file_handler)
+
+
+
 # prompt: read google shared drive file
 
 drive.mount("/content/drive")
@@ -34,6 +58,15 @@ with open(dir + "analysis/admit_weekly.pkl", "rb") as f:
 with open(dir + "analysis/admit_processed_raw.pkl", "rb") as f:
     admit_raw = pickle.load(f)
 
+# Load the mental health
+with open(dir + "analysis/admit_current_mh.pkl", "rb") as f:
+    admit_current_mh = pickle.load(f)
+
+with open(dir + "analysis/admit_current.pkl", "rb") as f:
+    admit_current = pickle.load(f)
+
+    
+
 
 numeric_cols = admit_weekly.select_dtypes(include=np.number).columns
 numeric_cat1_cols = [col for col in admit_weekly.columns if col.startswith("cat1_")]
@@ -50,7 +83,6 @@ nonresponse_rows = admit_weekly[admit_weekly["status"] == "nonresponse"]
 admit_weekly["nonresponse"] = admit_weekly["status"] == "nonresponse"
 
 # Display or further process the nonresponse rows
-# print(nonresponse_rows)
 
 # Get the unique PIDs of patients with 'current_status' as 'nonresponse'
 pids_nonresponse = nonresponse_rows["pid"].unique()
@@ -59,7 +91,7 @@ pids_nonresponse = nonresponse_rows["pid"].unique()
 dead_rows = admit_weekly[admit_weekly["status_dead"] == True]
 # Get the unique PIDs of patients with 'current_status' as 'dead'
 pids_dead = dead_rows["pid"].unique()
-print(len(pids_dead))
+logger.debug(len(pids_dead))
 # admit_weekly.loc[admit_weekly['status_dead'] == True , 'status_dead_date'] = admit_weekly.loc[admit_weekly['status_dead'] == True, 'status_date']
 
 # admit_weekly['status_dead_date'].notnull().sum()
@@ -70,12 +102,11 @@ print(len(pids_dead))
 # prompt: get admit_weekly where calcdate_weekly is null
 
 # Assuming admit_weekly is already loaded as in the provided code
-print(admit_weekly["pid"].nunique(), admit_weekly.shape)
+logger.debug(f"{admit_weekly['pid'].nunique()}, {admit_weekly.shape}")
 # Filter for rows where 'calcdate_weekly' is null
 admit_weekly_no_weekly = admit_weekly[admit_weekly["calcdate_weekly"].isnull()].copy()
-print(admit_weekly_no_weekly["pid"].nunique(), admit_weekly_no_weekly.shape)
-print(admit_weekly["pid"].nunique() - admit_weekly_no_weekly["pid"].nunique())
-
+logger.debug(f"Unique PIDs in admit_weekly_no_weekly: {admit_weekly_no_weekly['pid'].nunique()}, Shape of admit_weekly_no_weekly: {admit_weekly_no_weekly.shape}")
+logger.debug(f"Difference in unique PIDs between admit_weekly and admit_weekly_no_weekly: {admit_weekly['pid'].nunique() - admit_weekly_no_weekly['pid'].nunique()}")
 pids_with_visits = list(
     set(admit_weekly["pid"].unique()) - set(admit_weekly_no_weekly["pid"].unique())
 )
@@ -112,19 +143,8 @@ admit_weekly = pd.merge(
 admit_weekly_seq3 = admit_weekly[admit_weekly["sequence_num"] == 3]
 
 
-# prompt: find pid with the most rows
-
-# Find the 'pid' with the most rows
-pid_counts = admit_weekly["pid"].value_counts()
-pid_with_most_rows = pid_counts.index[0]
-print(f"The 'pid' with the most rows is: {pid_with_most_rows}")
-
 # get prior weight, lag_1
 admit_weekly[f"weight_weekly_lag_1"] = admit_weekly.groupby("pid")["weight_weekly"].shift(1)
-
-
-# prompt: Static weight or weight loss for 4 consecutive weeks
-
 
 # Static weight or weight loss for 4 consecutive weeks
 def static_or_weight_loss_4_weeks(df):
@@ -519,20 +539,10 @@ for col in temp_cat1:
 
 admit_weekly.drop(columns=temp_cat1, inplace=True)
 
-
-[col for col in admit_weekly.columns if "diarrhea" in col]
-
-admit_weekly.groupby("cat1_diarrhea_admit_current")[cat1_weekly_cols].sum().T
-
 # prompt: find cat1 columns in admit_weekly
-
-# Assuming admit_weekly DataFrame is already loaded as in the provided code.
 
 # Filter columns that contain 'cat1' and end with '_weekly'
 cat1_weekly_cols = [col for col in admit_weekly.columns if "cat1" in col]
-
-# Print the column names
-cat1_weekly_cols
 
 
 # prompt: set value of None to False for admit_weekly['cat2_oedema_weekly']
@@ -542,13 +552,9 @@ admit_weekly["oedema_status_weekly"] = admit_weekly["oedema_status_weekly"].fill
 
 # prompt: lag c_oedema_weekly,cat2_oedema_weekly
 
-# Assuming admit_weekly DataFrame is already loaded as in the provided code.
-
 # Create lagged columns for 'c_oedema_weekly' and 'cat2_oedema_weekly'
 admit_weekly["c_oedema_weekly_lag_1"] = admit_weekly.groupby("pid")["c_oedema_weekly"].shift(1)
-admit_weekly["cat2_oedema_weekly_lag_1"] = admit_weekly.groupby("pid")["cat2_oedema_weekly"].shift(
-    1
-)
+admit_weekly["cat2_oedema_weekly_lag_1"] = admit_weekly.groupby("pid")["cat2_oedema_weekly"].shift(1)
 
 # prompt: find rows where lag of cat2_oedema_weekly_lag_1 is false and differs from current value or c_oedema_weekly is greater than lagged value
 
@@ -694,11 +700,11 @@ pids_muac_loss_latest = admit_weekly[admit_weekly["muac_loss_2_weeks_consecutive
 # 23-0811
 # admit_weekly[admit_weekly['pid'] == '24-2250'][['pid','sequence_num','calcdate_weekly','muac_weekly','muac_loss_2_weeks_consecutive','muac_loss_2_weeks_consecutive_latest','interpolated']]
 
-current = pd.read_csv(
-    "/content/drive/My Drive/[PBA] Full datasets/" + "FULL_pba_current_processed_2024-11-15.csv"
-)
+#current = pd.read_csv(
+#    "/content/drive/My Drive/[PBA] Full datasets/" + "FULL_pba_current_processed_2024-11-15.csv"
+#)
 
-print(admit_weekly["pid"].nunique())
+logger.debug(admit_weekly["pid"].nunique())
 
 pids_deterioration = list(
     set(
@@ -710,7 +716,7 @@ pids_deterioration = list(
         + list(pids_dead)
     )
 )
-print(len(pids_deterioration))
+logger.debug(len(pids_deterioration))
 
 pids_deterioration_latest = list(
     set(
@@ -723,17 +729,11 @@ pids_deterioration_latest = list(
     )
 )
 
-print(len(pids_deterioration_latest))
+logger.debug(len(pids_deterioration_latest))
 
 # prompt: list columns in admit_weekly starting with loc 980
 
 first_added_col = admit_weekly.columns.get_loc("max_sequence_num")
-
-
-# Find boolean columns
-boolean_columns = admit_weekly.select_dtypes(include=["bool"]).columns
-print("Boolean columns:")
-boolean_columns
 
 # prompt: find columns that are single value and nonnull, then drop them
 
@@ -742,8 +742,8 @@ single_value_cols = [
     for col in admit_weekly.columns
     if admit_weekly[col].nunique() == 1 and admit_weekly[col].notna().all()
 ]
-print("Single value columns:")
-print(single_value_cols)
+logger.debug("Single value columns:")
+logger.debug(single_value_cols)
 admit_weekly.drop(columns=single_value_cols, inplace=True)
 
 
@@ -752,8 +752,8 @@ single_value_cols = [
     for col in admit_weekly_all.columns
     if admit_weekly_all[col].nunique() == 1 and admit_weekly_all[col].notna().all()
 ]
-print("Single value columns:")
-print(single_value_cols)
+logger.debug("Single value columns:")
+logger.debug(single_value_cols)
 admit_weekly_all.drop(columns=single_value_cols, inplace=True)
 
 
@@ -781,11 +781,11 @@ def find_3val_bool(df):
                 size = df[col].size
                 sum = df[col].sum()
                 if null_ct > 0:
-                    print(
+                    logger.debug(
                         f"Found 3-val bool column '{col}' with null count: {null_ct} {null_ct/size*100:.1f}% sum:{sum}"
                     )
                 else:
-                    print(
+                    logger.debug(
                         f"Found 3-val bool column '{col}' with null count: {df[col].isnull().sum()} sum:{sum}"
                     )
 
@@ -821,8 +821,8 @@ convert_to_bool(admit_weekly_all)
 # Assuming 'detn' DataFrame is already loaded as in the provided code.
 
 boolean_columns = admit_weekly.select_dtypes(include=["bool"]).columns
-print("Boolean columns:")
-print(boolean_columns.tolist())
+logger.debug("Boolean columns:")
+logger.debug(boolean_columns.tolist())
 
 # Convert boolean columns to numeric
 for col in boolean_columns:
@@ -844,7 +844,7 @@ detn_weight_loss_cols = [
     "weight_at_week3_lower_than_admission",
 ]
 
-admit_weekly[detn_cols].sum()
+logger.debug(admit_weekly[detn_cols].sum())
 
 # add last weekly row to admit_row
 start_col = admit_weekly.columns.get_loc("calcdate_weekly")
@@ -902,7 +902,7 @@ def trend(detn_prior, admit_weekly, admit, detn_col):
     # prompt: for each anthro_col in
     # prompt: for each anthro_col in 'weight_weekly','muac_weekly','hl_weekly','wfhz_weekly', 'hfaz_weekly', 'wfaz_weekly':
     for anthro_col in ["wfh", "hfa", "wfa", "weight", "muac", "hl"]:
-        print(anthro_col)
+        logger.debug(anthro_col)
         # prompt: for each pid in admit call regress and add the first return value as f'{anthro_col}_trend'" and second as f'{anthro_col}_rsquared columns in admit
 
         # Apply the function to each unique 'pid' and create new columns
@@ -919,7 +919,7 @@ def trend(detn_prior, admit_weekly, admit, detn_col):
 
         # Merge the results back into the 'admit' DataFrame
         trend_df = pd.merge(trend_df, results_df, on="pid", how="right")
-        print(trend_df.shape)
+        logger.debug(trend_df.shape)
 
     # np.-inf breaks downstream models
     rsquared_columns = [col for col in trend_df.columns if col.endswith("_rsquared")]
@@ -1175,13 +1175,6 @@ def weekly_agg(detn_prior, admit):
     return weekly_agg
 
 
-# Load the mental health
-with open(dir + "analysis/admit_current_mh.pkl", "rb") as f:
-    admit_current_mh = pickle.load(f)
-
-with open(dir + "analysis/admit_current.pkl", "rb") as f:
-    admit_current = pickle.load(f)
-
 admit_current_mh = convert_bool_to_int(admit_current_mh)
 
 
@@ -1222,7 +1215,7 @@ def only_rows_before_detn(detn, detn_col):
     # max_sequence_rows = detn.loc[detn.groupby('pid')['sequence_num'].idxmax()]
 
     # Filter out rows where 'sequence_number' is greater than or equal to 'first_detn_seq'
-    # print(detn[detn['pid']=='23-0107'][['pid','sequence_num','first_detn_seq']])
+
     seq_ct = 0
     if detn_col == "nonresponse":
         # for nonresponse, discard the few rows before the event happened to discourage the model from keying on los or duration
@@ -1232,10 +1225,6 @@ def only_rows_before_detn(detn, detn_col):
         ((detn["sequence_num"] + seq_ct) < detn["first_detn_seq"])
         & (detn["pid"].isin(detn_ever_pids))
     ].copy()
-
-    # print(detn_prior[detn_prior['pid']=='23-0107'][['pid','sequence_num','first_detn_seq']])
-
-    # print(detn.loc[detn['detn_ever'] == False].shape)
 
     # detn_prior contains only rows before the first deterioration for each patient plus all non-deteriorated patients with all their rows
     # Concatenate detn_prior and detn.loc[detn['detn_ever'] == False]
@@ -1251,10 +1240,9 @@ def only_rows_before_detn(detn, detn_col):
     y_detn = pd.concat([detn_ever_pids_series, pids_not_in_ever_pids])
     # Rename the Series
     y_detn.name = detn_col
-    # print('a',y_detn_cat1.shape)
 
     y_detn_cat1 = pd.merge(y_detn_cat1, y_detn, how="right", left_on="pid", right_on=y_detn.index)
-    # print('b',y_detn_cat1.shape,y_detn.shape)
+
     y_detn_cat1.fillna(False, inplace=True)
     for col in y_cat1:
         y_detn_cat1[col] = y_detn_cat1[col].astype(int)
@@ -1314,7 +1302,6 @@ def prepare_export(detn_col="new_onset_medical_complication"):
     )
     detn_prior.sort_values(by=["pid", "calcdate_weekly"], inplace=True)
     weekly_agg_stats = weekly_agg(detn_prior, admit)
-    # print(weekly_agg_stats[weekly_agg_stats['pid']== '24-3335'])
     detn_prior.rename(columns={"weight_weekly": "weight", "muac_weekly": "muac"}, inplace=True)
     detn_prior.rename(
         columns={"wfa_weekly": "wfa", "wfh_weekly": "wfh", "hfa_weekly": "hfa"}, inplace=True
@@ -1371,26 +1358,6 @@ def prepare_export(detn_col="new_onset_medical_complication"):
     return export, y_detn, y_detn_cat1
 
 
-# prompt: select number, int and boolean columns from admit_weekly
-
-# Assuming 'admit_weekly' DataFrame is already defined and loaded.
-# Example usage:
-
-# Select number, integer and boolean columns
-numeric_cols = admit_weekly.select_dtypes(include=["number", "bool"]).columns
-selected_columns = admit_weekly[numeric_cols]
-
-# print(selected_columns.head())
-
-
-# prompt: find columns in admit_weekly that are numeric and start with 'cat1_'
-
-# Assuming 'admit_weekly' is your DataFrame.
-numeric_cat1_cols = admit_weekly.select_dtypes(include=np.number).columns
-result = [col for col in numeric_cat1_cols if col.startswith("cat1_")]
-# result
-
-
 deterioration_types = [
     "detn_weight_loss_ever",
     "new_onset_medical_complication",
@@ -1415,7 +1382,7 @@ def get_first_detn_date(admit_weekly, variable, date_col="calcdate_weekly"):
 
 
 for col in deterioration_types:
-    print(col)
+    logger.debug(col)
     export, y_detn, y_detn_cat1 = prepare_export(detn_col=col)
 
     # get date of when deterioration first occurred and set it (for hazard analysis)
@@ -1442,7 +1409,7 @@ for col in deterioration_types:
     y_detn_all = pd.concat([pids_not_in_ever_pids_series, detn_ever_pids_series])
     # Rename the Series
     y_detn_all.name = col
-    print(y_detn_all.sum())
+    logger.debug(y_detn_all.sum())
     if col == "new_onset_medical_complication":
         export = export.merge(y_detn_cat1, on="pid", how="left")
     elif col in ["nonresponse", "status_dead"]:
@@ -1455,6 +1422,5 @@ for col in deterioration_types:
     export[col] = export[col].astype(int)
     export["row_count"].fillna(0, inplace=True)
     export["weekly_row_count"].fillna(0, inplace=True)
-    print("c", export.shape, export["pid"].nunique(), export[col].sum())
-    with open(dir + f"analysis/{col}.pkl", "wb") as f:
+        with open(dir + f"analysis/{col}.pkl", "wb") as f:
         pickle.dump(export, f)
