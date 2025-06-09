@@ -13,7 +13,7 @@ import statsmodels.formula.api as smf
 from google.colab import drive
 from tqdm import tqdm
 from util import convert_bool_to_int, infer_phq_score, regress
-
+import json
 import logging
 # Create a logger# Create a logger
 logger = logging.getLogger('my_logger')
@@ -61,6 +61,10 @@ with open(dir + "analysis/admit_processed_raw.pkl", "rb") as f:
 # Load the mental health
 with open(dir + "analysis/admit_current_mh.pkl", "rb") as f:
     admit_current_mh = pickle.load(f)
+# Load admit/current (needed for phq inference)
+with open(dir + "analysis/admit_current.pkl", "rb") as f:
+    admit_current = pickle.load(f)
+
    
 
 
@@ -1418,5 +1422,14 @@ for col in deterioration_types:
     export[col] = export[col].astype(int)
     export["row_count"].fillna(0, inplace=True)
     export["weekly_row_count"].fillna(0, inplace=True)
-        with open(dir + f"analysis/{col}.pkl", "wb") as f:
-        pickle.dump(export, f)
+    #with open(dir + f"analysis/{col}.pkl", "wb") as f:
+    #    pickle.dump(export, f)
+
+    detn_dtypes = export.dtypes    
+    # Convert the Series to a dictionary
+    detn_dtypes_dict = detn_dtypes.apply(lambda x: x.name).to_dict()
+    # Export datatypes to JSON so inference model can apply to csv 
+    with open(dir + f"analysis/{col}.json", 'w') as f:
+      json.dump(detn_dtypes_dict, f, indent=2)
+    # Export dataframe to csv for digital ocean
+    export.to_csv(dir + f"analysis/{col}.csv", index=False) 
