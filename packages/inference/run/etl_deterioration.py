@@ -61,11 +61,7 @@ with open(dir + "analysis/admit_processed_raw.pkl", "rb") as f:
 # Load the mental health
 with open(dir + "analysis/admit_current_mh.pkl", "rb") as f:
     admit_current_mh = pickle.load(f)
-
-with open(dir + "analysis/admit_current.pkl", "rb") as f:
-    admit_current = pickle.load(f)
-
-    
+   
 
 
 numeric_cols = admit_weekly.select_dtypes(include=np.number).columns
