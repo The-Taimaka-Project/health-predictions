@@ -23,7 +23,6 @@ to get the dataframes that this notebook depends on
 # TODO change to digital ocean
 MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
 
-# shapley explanation of models
 !pip install import_ipynb --quiet
 
 #!pip install shap --quiet
@@ -63,24 +62,16 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 
-os.chdir("/content/drive/My Drive/[PBA] Code")
 
-#from util import days_since_min,make_populated_column,logistic_regression,AutogluonWrapper,explain_prediction,plot_anthros,check_cols,plot_corr,drop_result_columns
-#from util import decision_tree,print_tree,explain_tree_sample,print_patient_probabilities,impute_missing_values,select_logistic_features,get_best_lin_model,explain_logreg
-#from util import get_best_tree_model,decision_tree_f1,logistic_train,plot_corr_jitter,lightgbm_train,select_features,make_dummy_columns,split_detn_new_onset_medical_complication,ag_model_load
-#from util import label_test,make_test,label_test_tree,label_test_lin,plot_survival,plot_survival3
-#from util import ag_feature_generator,label_test_gbm,explain_prediction_gbm,log_odds_to_probability,merge_probabilities,ag_regress_model_load,ag_model_load_suffix
 from util import reduce_dimensionality
 
 
 
-os.chdir("/content")
 
 # prompt: read google shared drive file
 
 
 dir = "/content/drive/My Drive/[PBA] Data/analysis/"
-MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
 
 # use auto ML (autogluon) to predict the 5 deterioration events
 !pip install autogluon --quiet
@@ -110,7 +101,7 @@ file_handler.setFormatter(formatter)
 # Add the handler to the logger
 logger.addHandler(file_handler)
 
-# TODO replace with csv
+# TODO replace with read data from csv and datatypes dict from json or Postgres SQL 
 with open(dir + 'admit_weekly.pkl', 'rb') as f:
   admit_weekly = pickle.load(f)
 with open(dir + 'admit_current.pkl', 'rb') as f:
@@ -154,11 +145,8 @@ label = 'new_onset_medical_complication'
 with open(dir + f'{label}.pkl', 'rb') as f:
   detn = pickle.load(f)
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-# (5215, 1786) 512 0.09817833173537871 version 1, 11/15
-# (5215, 1831) 524 0.10047938638542665 version 2
-# (5215, 1615)
-#detn = drop_result_columns(detn,label)
-#detn.drop(columns=[f'{label}_date'],inplace=True)
+
+
 detn = detn[detn['weekly_last_admit'].notnull()].copy()
 
 detn.drop(columns='c_admission_other',inplace=True) # causes duplicate column if get_dummies invoked
@@ -223,16 +211,7 @@ y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],ax
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
 pid_probabilities = pid_probabilities.join(y_pred_proba_all_stratified_series)
 
-"""#### all los in single model
 
-### Light Gradient-Boosting Machine (GBM) classifier
-
-### explain via Decision Tree Classifier
-
-### explain via logistic linear regression
-
-## survival
-"""
 
 # survival
 logger.debug(f'{detn[label].sum()},{detn.shape}')
@@ -270,7 +249,6 @@ detn.loc[detn[label] == 1, 'duration_days'] = (detn.loc[detn[label] == 1, label_
 
 detn['duration_days'] = detn['duration_days'].clip(lower=0.1)
 
-"""### AFT survival regression"""
 
 # AFT survival regression
 selected_columns = ['muac_diff','wk1_muac','muac_diff_ratio_rate']
@@ -298,13 +276,6 @@ aft.fit(regression_dataset, duration_col='duration_days', event_col=f'{label}', 
 
 logger.debug(aft.print_summary())
 
-"""column	description
-1. wk1_muac	muac on most recent visit
-1. muac_diff_ratio_rate	latest/last muac minus first muac divided by first muac divided by the number of days in the program.  So muac change per starting muac per day.  Last would the last visit or the last visit up to the appropriate deterioration type.
-1. muac_diff	the difference between the most recent (before deterioration) muac and the first visit's muac
-
-### censored (i.e., patients w/o complication yet) survival prediction
-"""
 
 # censored (i.e., patients w/o complication yet) survival prediction
 
@@ -335,28 +306,7 @@ df = pd.merge(censored_subjects[['pid','wk1_muac','muac_diff','muac_diff_ratio_r
 
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 
-"""## visualize most and least probable patients
-
-### most probable
-
-### 2nd most probable
-
 # poor weight gain
-
-* Weight at week 3 is lower than weight at admission
-* Weight loss for 3 consecutive weeks (not related to loss of oedema)
-* Static weight or weight loss for 4 consecutive weeks
-* Poor weight gain (<5 g/kg/day) for 4 consecutive weeks
-
-The biggest predictors of poor weight gain are ['wk1_muac','wk2_muac','weight_trend','wfh_trend']
-
-1.   Most recent visit's MUAC
-2.   2nd most recent visit's MUAC
-3. Weight trend
-4. Weight for height trend
-"""
-
-# prompt: use pickle to get the data to train and infer on
 
 label = 'detn_weight_loss_ever'
 
@@ -365,8 +315,6 @@ label = 'detn_weight_loss_ever'
 detn = read_detn(label)
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-# (5215, 1786) 1021 0.19578139980824544 for 70% training phase
-# (8352, 1844) 1660 0.19875478927203066
 detn['wk1_calc_los'].fillna(0,inplace=True)
 
 LOS_CUTOFF = 12
@@ -378,20 +326,8 @@ detn = detn[((detn['wk1_b_discharged']==0) & (detn['weekly_last_muac']< MUAC_CUT
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
 detn = reduce_dimensionality(detn,['resp_rate', 'temperature'],'resp_rate_temperature')
-#detn['phq_score'] = detn['phq_score'].astype(int)
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-
-"""## major correlations
-
-visualize the correlations of the biggest predictors to poor weight gain
-
-## predictive model feature importances
-
-### autogluon
-
-90% of its predictions are right (precision).  It found 87% of the poor weight gain patients (recall).
-"""
 
 # infer
 y_pred_proba_all = run_ag_model(label,detn,'')
@@ -400,7 +336,6 @@ pred_proba_all_series = y_pred_proba_all[1].rename(f'probability_{label}')
 pid_probabilities = pid_probabilities.join(pred_proba_all_series)
 logger.debug(pid_probabilities.shape)
 
-"""## survival"""
 
 # survival
 logger.debug(f'{detn[label].sum()},{detn.shape}')
@@ -411,13 +346,10 @@ label_date = f'{label}_date'
 
 detn.loc[detn[label] == 0, label_date] = None
 
-# prompt: filter detn for label_date not null or wk1_calcdate_weekly not null
-
 # drop those w/o a visit, hence no lifetime to be plotted)
 detn = detn[(detn[label_date].notnull()) | (detn['wk1_calcdate_weekly'].notnull())].copy()
 logger.debug(f'{detn[label].sum()},{detn.shape}')
 
-# prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
 # Create 'final_date' column, choosing the later date between 'status_date' and 'wk1_calcdate_weekly'
 detn['final_date'] = detn[['status_date', 'wk1_calcdate_weekly']].max(axis=1)
 
@@ -429,7 +361,6 @@ detn['duration_days'] = detn['duration_days'].dt.days
 
 logger.debug(detn[label_date].notnull().sum())
 
-# prompt: for rows in detn where label==1 set duration_days to label_date - calcdate
 
 # Calculate duration_days only for rows where label == 1
 detn.loc[detn[label] == 1, 'duration_days'] = (detn.loc[detn[label] == 1, label_date] - detn.loc[detn[label] == 1, 'calcdate']).dt.days
@@ -476,20 +407,8 @@ df = pd.merge(censored_subjects[['pid','weight_trend',duration_days_col]],y_medi
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 logger.debug(pid_probabilities.shape)
 
-"""## visualize most and least probable patients
-
-### most probable
-
 # muac loss 2 weeks consecutive
 
-Static MUAC or MUAC loss for 2 consecutive weeks
-
-if malnourish status is coded non-healthy (mam in particular) on most recent visit, probability of MUAC loss in the following 2 weeks increases 5x from the baseline 10% to 50%.
-
-For the 2.6% with healthy MUAC but cat2_overall diagnosis on their most recent visit their probability increases 20x (from the baseline for healthy MUAC) to 37%. For the 10% with the difference between visit 1 and visit 2 MUAC is less than .5 cm and they have unhealthy MUAC, then their probability increases another 25 points (from the baseline for unhealthy MUAC), to 81%.
-"""
-
-# prompt: use pickle to read deterioration dataframe
 label = 'muac_loss_2_weeks_consecutive'
 
 #with open(dir + f'{label}.pkl', 'rb') as f:
@@ -499,15 +418,12 @@ detn = read_detn(label)
 
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-# (5215, 1786) 469 0.08993288590604027 first version of data
-# (8352, 1844) 817 0.09782088122605365
-
 detn['wk1_calc_los'].fillna(0,inplace=True)
 
 LOS_CUTOFF = 12
 MUAC_CUTOFF = 12.7
+
 # prompt: detn where wk1_muac between 11.5 and 12.6 and wk1_calc_los between 10 and 12
-#detn = detn[(detn['weekly_last_muac']< MUAC_CUTOFF) & (detn['wk1_calc_los']< LOS_CUTOFF) ].copy()
 
 detn = detn[((detn['wk1_b_discharged']==0) & (detn['weekly_last_muac']< MUAC_CUTOFF) & (detn['wk1_calc_los']< LOS_CUTOFF)) ].copy()
 
@@ -522,16 +438,7 @@ detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_w
 detn = reduce_dimensionality(detn,['wk1_muac_diff_rate','muac_diff_ratio_rate','muac_diff_ratio'],'muac_diff_rate_ratio_z')
 
 
-#detn['phq_score'] = detn['phq_score'].astype(int)
-
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-
-"""## correlations
-
-## predictive model feature importances
-
-### Autogluon
-"""
 
 # run inference
 y_pred_proba_all = run_ag_model(label,detn,'')
@@ -539,8 +446,6 @@ y_pred_proba_all = run_ag_model(label,detn,'')
 pred_proba_all_series = y_pred_proba_all[1].rename(f'probability_{label}')
 pid_probabilities = pid_probabilities.join(pred_proba_all_series)
 logger.debug(pid_probabilities.shape)
-
-"""## survival"""
 
 # survival
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
@@ -551,13 +456,10 @@ label_date = f'{label}_date'
 
 detn.loc[detn[label] == 0, label_date] = None
 
-# prompt: filter detn for label_date not null or wk1_calcdate_weekly not null
-
 # drop those w/o a visit, hence no lifetime to be plotted)
 detn = detn[(detn[label_date].notnull()) | (detn['wk1_calcdate_weekly'].notnull())].copy()
 logger.debug(f'{detn.shape,detn[label].sum()}')
 
-# prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
 # Create 'final_date' column, choosing the later date between 'status_date' and 'wk1_calcdate_weekly'
 detn['final_date'] = detn[['status_date', 'wk1_calcdate_weekly']].max(axis=1)
 
@@ -576,14 +478,8 @@ detn.loc[detn[label] == 1, 'duration_days'] = (detn.loc[detn[label] == 1, label_
 
 detn['duration_days'] = detn['duration_days'].clip(lower=0.1)
 
-"""### Hazard function (rate of deterioration)
-
-### AFT survival regression
-"""
-
 selected_columns = ['wfh_trend','pid']
 
-#print(detn[selected_columns].dtypes)
 
 X = detn[selected_columns].copy()
 
@@ -599,7 +495,6 @@ aft = WeibullAFTFitter()
 aft.fit(regression_dataset, duration_col='duration_days', event_col=f'{label}', ancillary=True,formula='wfh_trend')
 logger.debug(aft.print_summary())
 
-"""### censored (i.e., patients w/o consecutive muac loss yet) survival prediction"""
 
 censored_subjects=data_x_numeric.join(data_y)
 
@@ -621,24 +516,12 @@ df = pd.merge(censored_subjects[['pid','wfh_trend',duration_days_col]],y_median,
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 logger.debug(pid_probabilities.shape)
 
-"""## visualize most and least probable patients
-
-### most probable
-
-# nonresponse
-
-(status == ‘nonresponse’)
-discharge as not responding to treatment
-"""
-
-# read deterioration file
 label = 'nonresponse'
 
 detn = read_detn(label)
 
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-# (8352, 1844) 403 0.04825191570881226
 
 # prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
 detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
@@ -655,9 +538,6 @@ detn['duration_days'] = detn['final_date'] - detn['calcdate']
 detn['duration_days'] = detn['duration_days'].dt.days
 
 # prompt: only keep detn rows where duration between label==1 min(duration_days) and max(duration_days)
-
-# Assuming 'detn' DataFrame is already loaded as in the provided code.
-
 min_duration = detn.groupby(label)['duration_days'].min()[1]
 max_duration = detn.groupby(label)['duration_days'].max()[1]
 
@@ -678,20 +558,9 @@ detn['muac_diff_ratio_rate'] = -detn['muac_diff_ratio_rate']
 
 
 detn = reduce_dimensionality(detn,['muac_diff_ratio','muac','muac_diff_ratio_rate'],'muac_diff_ratio_rate_z')
-
-
-
-
 detn = reduce_dimensionality(detn,['duration_days','wk1_calc_los'],'duration_z')
 #detn.drop(columns=['duration_days','wk1_calc_los'],inplace=True)
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-
-"""## predictive model feature importances
-
-### autogluon
-"""
-
-#explainer,predictor,ag_features,y_pred,y_pred_proba,ag_model_f1,X_test_ag,y_test_ag,y_pred_proba_all = ag_model_load(label,.2,detn)
 
 y_pred_proba_all = run_ag_model(label,detn,'')
 
@@ -699,24 +568,15 @@ pred_proba_all_series = y_pred_proba_all[1].rename(f'probability_{label}')
 pid_probabilities = pid_probabilities.join(pred_proba_all_series)
 logger.debug(pid_probabilities.shape)
 
-"""### survival curves
-
-# death
-"""
-
 label = 'status_dead'
-
 
 detn = read_detn(label)
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-# (8352, 1844) 233 0.02789750957854406
 
 # TODO move this to etl_deterioration
 detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-# prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
-
 # Create 'final_date' column, choosing the later date between 'status_date' and 'wk1_calcdate_weekly'
 detn['final_date'] = detn[['status_date', 'wk1_calcdate_weekly']].max(axis=1)
 
@@ -725,8 +585,6 @@ detn['final_date'] = detn['final_date'].fillna(datetime.date.today())
 detn['final_date'] = pd.to_datetime(detn['final_date'])
 detn['duration_days'] = detn['final_date'] - detn['calcdate']
 detn['duration_days'] = detn['duration_days'].dt.days
-
-#detn['wk1_calc_los'].fillna(detn['duration_days']/7,inplace=True)
 
 label_date = f'{label}_date'
 # for the majority that are missing label_date
@@ -753,23 +611,15 @@ logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
 
 detn = reduce_dimensionality(detn,['resp_rate', 'temperature'],'resp_rate_temperature_z')
-
-
 detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh')
 
 detn['muac_diff_ratio'] = -detn['muac_diff_ratio']
 
 detn = reduce_dimensionality(detn,['muac_diff_ratio','muac'],'muac_diff_ratio_z')
-
-
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-
 detn = reduce_dimensionality(detn,['wfa_trend','hfa_trend'],'wfa_hfa_trend_z')
-
 detn = reduce_dimensionality(detn,['cat1_complications_weekly','admit_cat1_complications'],'cat1_complications_z')
-
 detn = reduce_dimensionality(detn,['wk1_rainy_season_weekly','lean_season_admit'],'season_z')
-
 detn = reduce_dimensionality(detn,['wfh_rsquared','wfh_trend'],'wfh_trend_z')
 
 # prompt: clip lower boundary of detn['duration_days'] to 0
@@ -786,12 +636,6 @@ pid_not_in_admit = detn[~detn['pid'].isin(detn_admit_only['pid'])]['pid']
 detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 detn_filtered.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-"""## predictive models
-
-### autogluon
-
-#### stratified models by length of service
-"""
 
 y_pred_proba_all1 = run_ag_model(label,detn_admit_only,'1')
 y_pred_proba_all2 = run_ag_model(label,detn_filtered,'not1')
@@ -802,22 +646,12 @@ pid_probabilities = pid_probabilities.join(y_pred_proba_all_stratified_series)
 logger.debug(pid_probabilities.shape)
 
 # clip for better visualization and so AFT models will work, guaranteeing all durations >0
-# doesn't affect models
 #max_duration = detn[detn[label]==1]['duration_days'].max() +1
-#print(max_duration)
 
-# prompt: clip detn['duration_days'] to max_duration for K-M clarity
-
-# detn['duration_days'] = detn['duration_days'].clip(upper=max_duration, lower=.01)
 
 detn['duration_days'] = detn['duration_days'].clip(lower=.01)
 
-"""### Survival Curves
 
-### AFT survival regression
-"""
-
-#regr_cols = ['wk1_muac','wk1_calc_los','muac',label,'duration_days','pid']
 regr_cols = ['wk1_muac','muac',label,'duration_days','pid']
 regression_dataset = detn[regr_cols].copy()
 regression_dataset['wk1_muac'].fillna(regression_dataset['muac'],inplace=True)
@@ -833,7 +667,6 @@ aft.fit(regression_dataset, duration_col='duration_days', event_col=f'{label}', 
 
 logger.debug(aft.print_summary())
 
-"""### censored (i.e., still alive) patients prediction"""
 
 regr_cols = ['wk1_muac','muac',label,'duration_days','pid']
 censored_subjects = detn[regr_cols].copy()
