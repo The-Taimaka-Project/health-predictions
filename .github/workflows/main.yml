@@ -16,14 +16,14 @@ jobs:
       - name: Install DigitalOcean CLI
         run: sudo snap install doctl
 
-      - name: Install DigitalOcean serverless tools
-        run: doctl serverless install
-
       - name: Authenticate with DigitalOcean
         run: |
           # TODO: this is currently Hunter's DigitalOcean access token.
           # Replace with a Taimaka production token in the repo.
           doctl auth init --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Install DigitalOcean serverless tools
+        run: doctl serverless install
 
       - name: Deploy to DigitalOcean Serverless
         run: |
