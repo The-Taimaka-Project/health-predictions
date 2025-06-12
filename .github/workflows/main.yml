@@ -16,10 +16,7 @@ jobs:
         run: sudo snap install doctl
 
       - name: Authenticate with DigitalOcean
-        run: |
-          # TODO: this is currently Hunter's DigitalOcean access token.
-          # Replace with a Taimaka production token in the repo.
-          doctl auth init --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        run: doctl auth init --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
       - name: Install DigitalOcean serverless tools
         run: doctl serverless install
@@ -40,7 +37,5 @@ jobs:
           [ "$TAIMAKA_ODK_USER" != "" ]; echo $?
           [ "$TAIMAKA_ODK_PW" != "" ]; echo $?
 
-          # TODO: this is currently Hunter's DigitalOcean Serverless API host namespace.
-          # Create a Taimaka host and replace it here.
-          doctl serverless connect hunter-taimaka-example
+          doctl serverless connect taimaka-health-predictions
           doctl serverless deploy .
