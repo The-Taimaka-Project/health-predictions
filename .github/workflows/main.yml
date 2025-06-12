@@ -30,4 +30,4 @@ jobs:
           # TODO: this is currently Hunter's DigitalOcean Serverless API host namespace.
           # Create a Taimaka host and replace it here.
           doctl serverless connect hunter-taimaka-example
-          doctl serverless deploy .
+          doctl serverless deploy . --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
