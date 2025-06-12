@@ -27,6 +27,7 @@ jobs:
 
       - name: Deploy to DigitalOcean Serverless
         run: |
-          # TODO: this is currently Hunter's DigitalOcean Serverless API host.
+          # TODO: this is currently Hunter's DigitalOcean Serverless API host namespace.
           # Create a Taimaka host and replace it here.
-          doctl serverless deploy . --apihost https://faas-lon1-917a94a7.doserverless.co
+          doctl serverless connect hunter-taimaka-example
+          doctl serverless deploy .
