@@ -1,0 +1,29 @@
+name: deploy
+
+on:
+  push: # delete before merging. Just testing right now.
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@main
+
+      - name: Set up DigitalOcean CLI
+        run: |
+          sudo snap install doctl
+          doctl serverless install
+
+          # TODO: this is currently Hunter's DigitalOcean access token.
+          # Replace with a Taimaka production token in the repo.
+          doctl auth init --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Deploy to DigitalOcean Serverless
+        run: |
+          # TODO: this is currently Hunter's DigitalOcean Serverless API host.
+          # Create a Taimaka host and replace it here.
+          doctl serverless deploy . --apihost https://faas-lon1-917a94a7.doserverless.co
