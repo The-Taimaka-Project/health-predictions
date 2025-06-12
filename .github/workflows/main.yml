@@ -1,6 +1,7 @@
 name: deploy-serverless-function
 
 on:
+  push:
   pull_request:
     branches:
       - main
@@ -31,11 +32,5 @@ jobs:
           TAIMAKA_ODK_PW: ${{ secrets.TAIMAKA_ODK_PW }}
 
         run: |
-          # just testing the secrets are available. All outputs should be 0. (Delete later.)
-          [ "$TAIMAKA_POSTGRES_USER" != "" ]; echo $?
-          [ "$TAIMAKA_POSTGRES_PW" != "" ]; echo $?
-          [ "$TAIMAKA_ODK_USER" != "" ]; echo $?
-          [ "$TAIMAKA_ODK_PW" != "" ]; echo $?
-
           doctl serverless connect taimaka-health-predictions
           doctl serverless deploy .
