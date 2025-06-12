@@ -8,7 +8,7 @@ packages:
       parameters: {}
       annotations: {}
       functions:
-        - name: run
+        - name: hello  # change to "run" later. Just testing for now.
           binary: false
           main: ""
           runtime: python:default
