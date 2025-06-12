@@ -1,7 +1,7 @@
-name: deploy
+name: deploy-serverless-function
 
 on:
-  push: # delete before merging. Just testing right now.
+  push:
   pull_request:
     branches:
       - main
@@ -26,7 +26,21 @@ jobs:
         run: doctl serverless install
 
       - name: Deploy to DigitalOcean Serverless
+        env:
+          # the ETL and inference code will pick up Postgres / ODK credentials
+          # from these environment variables. (Currently, they are unused.)
+          TAIMAKA_POSTGRES_USER: ${{ secrets.TAIMAKA_POSTGRES_USER }}
+          TAIMAKA_POSTGRES_PW: ${{ secrets.TAIMAKA_POSTGRES_PW }}
+          TAIMAKA_ODK_USER: ${{ secrets.TAIMAKA_ODK_USER }}
+          TAIMAKA_ODK_PW: ${{ secrets.TAIMAKA_ODK_PW }}
+
         run: |
+          # just testing the secrets are available. All outputs should be 0.
+          [ "$TAIMAKA_POSTGRES_USER" != "" ]; echo $?
+          [ "$TAIMAKA_POSTGRES_PW" != "" ]; echo $?
+          [ "$TAIMAKA_ODK_USER" != "" ]; echo $?
+          [ "$TAIMAKA_ODK_PW" != "" ]; echo $?
+
           # TODO: this is currently Hunter's DigitalOcean Serverless API host namespace.
           # Create a Taimaka host and replace it here.
           doctl serverless connect hunter-taimaka-example
