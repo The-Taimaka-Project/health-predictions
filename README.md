@@ -17,9 +17,13 @@ This codebase contains functionality for extracting, transforming, and loading (
     - `packages/inference/run/etl.py`: Contains functions that load cleaned data from Postgres and returns weekly dataframes.
     - `packages/inference/run/etl_deterioration.py`: Contains functions that take in weekly dataframes and return time series.
     - `packages/inference/run/util.py`: Contains utility functions used throughout.
+- `.github/workflows/main.yml`: Configuration file that automates deployment and scheduling when a PR is merged to main.
 
 The full directory structure is shown below. The `hello` directory contains code I was using to test DO Functions, and the `to_archive` directory contains the raw R&D code that was used to develop these models.
 ```
+├── .github
+│   └── workflows
+│       └── main.yml
 ├── README.md
 ├── project.yml
 ├── packages
@@ -56,11 +60,10 @@ DigitalOcean Functions pricing is described [here](https://www.digitalocean.com/
 
 ## Potential Issues
 
-DigitalOcean Functions do not have an R runtime. We may need to migrate Brianna's code to Python.
+DigitalOcean Functions do not have an R runtime.
 
 ## Next Steps
 
-- Assess whether Brianna's code can be migrated to Python
 - Ensure the ETL Function can authenticate to and access the Taimaka Postgres database
 
 ## For Developers
@@ -69,24 +72,29 @@ DigitalOcean Functions do not have an R runtime. We may need to migrate Brianna'
 
 This repo is modeled after DigitalOcean's [Functions Quick Start](https://docs.digitalocean.com/products/functions/getting-started/quickstart/) page. A Function is a block of code that runs on demand without the need to manage any infrastructure (i.e., it is "serverless"). I chose to use Functions because they are serverless and can be scheduled.
 
+Deployment is automated with Github Actions [here](.github/workflows/main.yml). The process in that file can also be emulated locally (though is not required). I'll describe each step below.
+
 ### Installing `doctl`
 
-(I'm learning DigitalOcean as I go, so currently I'm just documenting my progress, and I'll clean this up later.)
-
-I'll document how I set this up from my mac. First I installed `doctl`:
+On mac, install `doctl`:
 ```bash
 brew install doctl
 ```
 
-In my DigitalOcean console in the browser, I created an API token, then I ran the following code in my terminal to authenticate my local machine to my DigitalOcean account (TODO: need to set up a Taimaka context as well, see commented code below):
+Other OS's require other methods to install.
+
+In the DigitalOcean console in the browser, retrieve an API token (or create one if one is not available), then run the following code in your terminal to authenticate your local machine to your DigitalOcean account:
 ```bash
 doctl auth init  # set up a base context. I pasted my token when prompted.
 
-## once I have Taimaka credentials for DigitalOcean, I'll run this too:
-# doctl auth init --context taimaka
+# You can have more than one DO context:
+doctl auth init --context taimaka
+
+# switch contexts from default to taimaka
+doctl auth switch --context taimaka
 ```
 
-I also installed serverless functions:
+Now install serverless functions:
 ```bash
 doctl serverless install
 ```
@@ -95,18 +103,18 @@ There are more details on installation and troubleshooting on DigitalOcean's [in
 
 ### Setup and deployment
 
-I created a namespace for testing (TODO: create a namespace within the Taimaka DigitalOcean account)
+Here is the only step that needed to be run manually once. I created a namespace within the Taimaka DO environment for our serverless function:
 ```bash
-doctl serverless namespaces create --label hunter-taimaka-example --region nyc1
+doctl serverless namespaces create --label taimaka-health-predictions --region lon1
 ```
 
-And I deployed the two "hello, world" functions in this repo to that namespace:
+And I deployed the "hello, world" function in this repo to that namespace:
 ```bash
 # run this from the root directory that contains `project.yml`:
 doctl serverless deploy .
 ```
 
-This gave me the following output (which I edited to remove the UUIDs identifying the namespace and host):
+You will get output that looks similar to this (which I edited to remove the UUIDs identifying the namespace and host):
 ```
 Deploying '/Users/hunter.merrill/dev/repos/health-predictions'
   to namespace '<uuid redacted>'
@@ -114,14 +122,12 @@ Deploying '/Users/hunter.merrill/dev/repos/health-predictions'
 Deployment status recorded in '.deployed'
 
 Deployed functions ('doctl sls fn get <funcName> --url' for URL):
-  - etl/hello
   - inference/hello
 Deployed triggers:
-  - trigger-etl-every-minute
+  - trigger-etl-every-day
 ```
 
-In my DigitalOcean dashboard in the browser, I saw that the `etl/hello` function was indeed running every minute. So I then undeployed both functions:
+In the DigitalOcean dashboard in the browser, you can see that the `inference/hello` function was indeed scheduled to run every day. Since these are just for testing and I don't want to waste resources, I undeploy:
 ```bash
-doctl serverless undeploy etl/hello
 doctl serverless undeploy inference/hello
 ```
