@@ -42,11 +42,7 @@ admit <- data.frame(db %>% tbl(in_schema("data", "dict"))) %>%
 
 weekly <- data.frame(db %>% tbl(in_schema("data", "weekly")))
 
-mh <- data.frame(db %>% tbl(in_schema("data", "mmh_dict")))
-mh_pids <- mh$pid
-
-relapse <- data.frame(db %>% tbl(in_schema("data", "relapse_dict")))
-relapse_pids <- relapse$pid
+### Deleted mental health and relaspse study data
 
 exclusions <- data.frame(db %>% tbl(in_schema("data", "manual_exclusions"))) %>% 
   group_by(pid) %>% 
@@ -630,81 +626,7 @@ weekly <- weekly %>%
 
 current_pids <- current$pid
 
-### Load Relapse Study Data ###
-ru_setup(
-  svc = 'https://taimaka-internal.org:7443/v1/projects/12/forms/relapse.scv',
-  un = 'jennifer@taimaka.org',
-  pw = '<redacted!>', 
-  verbose = TRUE
-)
-
-relapse_raw <- odata_submission_get(
-  table = "Submissions", 
-  url = "https://taimaka-internal.org:7443",
-  wkt=TRUE,
-  download=FALSE,
-  parse=FALSE
-) %>% odata_submission_rectangle(names_sep=NULL)
-
-relapse_raw_2 <- relapse_raw %>% 
-  filter(pid %in% relapse_pids,
-         pid %in% current_pids,
-         is.na(set_final_consent) | set_final_consent != 'refused',
-         is.na(c_consent) | c_consent != 'refused') %>% 
-  filter(is.na(review_state) | review_state != "rejected")
-
-relapse_raw_2 <- relapse_raw_2 %>% 
-  select(-pull_phone_otp, -pull_phone_relapse, -pull_phone, -homedesc, -full_address, 
-         -leader, -hoh, -hoh_wkname, -cg_name, -new_prim_cg, -verify_cg, -prim_cg, -alt_cg,
-         -new_homedesc, -set_homedesc, -new_leader, -set_tradleader, -new_hoh, -set_hoh_name,
-         -phone, -set_phone, -sec_con_info, -update_sec_con, -instruct_contact, -sec_cont_one, 
-         -update_sec_con, -set_sec_con_name, -set_sec_con_wkname,
-         -contact_rel_to_cg, -otherrelations_text, -sec_con_rel_final, -comm_sec_cont, 
-         -set_comm_sec_cont, -check_sec_cont_phone, -sec_cont_phone, -set_sec_con_phone, 
-         -find_contact, -find_sec_con, -sub_sec_con_name,           
-         -ent_sec_con_name, -curr_sec_con_name, -sub_sec_con_wkname,   
-         -ent_sec_con_wkname, -curr_sec_con_wkname, -sub_sec_con_rel_final,     
-         -ent_sec_con_rel_final, -curr_sec_con_rel_final, -sub_comm_sec_cont,         
-         -ent_comm_sec_cont, -curr_comm_sec_cont, -sub_sec_con_phone,         
-         -ent_sec_con_phone, -curr_sec_con_phone, -sub_find_sec_con,          
-         -ent_find_sec_con, -curr_find_sec_con, -ent_phone,                 
-         -curr_phone, -display_phone, -pt_contact, -set_cgname, -child_name,
-         -sub_phone_owner_name, -ent_phone_owner_name, -curr_phone_owner_name,
-         -new_cg, -new_name, -set_ptname, -sub_geopoints, -ent_geopoints, 
-         -curr_geopoints, -home_location, -set_geopoints, -phone_owner_name, 
-         -set_phone_owner_name, -sec_cont_local_name, -vconsent_name)
-
-### Load Mental Health Study Data ###
-ru_setup(
-  svc = 'https://taimaka-internal.org:7443/v1/projects/11/forms/mmhs.scv',
-  un = 'jennifer@taimaka.org',
-  pw = '<redacted!>', 
-  verbose = TRUE
-)
-
-mh_raw <- odata_submission_get(
-  table = "Submissions", 
-  url = "https://taimaka-internal.org:7443",
-  wkt=TRUE,
-  download=FALSE,
-  parse=FALSE
-) %>% odata_submission_rectangle(names_sep=NULL)
-
-mh_raw$name <- gsub("san", "ru", mh_raw$name)
-
-mh_raw_2 <- mh_raw %>% 
-  filter(session == '0',
-         study_consent != 'false',
-         ineligible != 'false',
-         is.na(review_state) | review_state != 'rejected',
-         pid %in% mh_pids,
-         pid %in% current_pids)
-
-mh_raw_2 <- mh_raw_2 %>% 
-  select(-pull_phone, -pull_address, -pull_leader, -pull_hoh_name, -pull_hoh_wkname,
-         -pull_cg_name, -b_cr_address, -new_address, -new_address_reason, -new_address_reason_other,
-         -b_cr_phone, -new_phone, -b_cr_leader, -new_leader, -b_cr_hoh, -new_hohname,
-         -child_name)
+### Deleted relapse and mental health data
 
 ### Additional cleaning of DB datasets ###
 # Removal of unnecesssary PII 
@@ -729,24 +651,7 @@ weekly_processed <- weekly_processed %>%
 itp_roster <- itp_roster %>% 
   filter(pid %in% current_pids)
 
-### Load Geolocation Data ###
-ru_setup(
-  svc = 'https://taimaka-internal.org:7443/v1/projects/9/forms/Coordinate%20Tracker%20Form%20(1).scv',
-  un = 'jennifer@taimaka.org',
-  pw = '<redacted!>', 
-  verbose = TRUE
-)
-
-settlement_loc <- odata_submission_get(
-  table = "Submissions", 
-  url = "https://taimaka-internal.org:7443",
-  wkt=TRUE,
-  download=FALSE,
-  parse=FALSE
-) %>% odata_submission_rectangle(names_sep=NULL)
-
-settlement_loc2 <- settlement_loc %>% 
-  filter(is.na(review_state) | review_state != "rejected")
+### Deleted geolocation data ###
 
 ### Cleaning of extreme values ###
 admit_processed$ses_hh_adults[admit_processed$ses_hh_adults == 1511] <- NA
@@ -763,21 +668,7 @@ admit_raw_2$hl[admit_raw_2$hl == 7.2] <- 82
 
 # TODO: How to handle two visits in a single day at inference time? Check with Brian
 
-### Cleaning of 2 visits in a single day ###
-pid_dup_visits <- read_sheet("https://docs.google.com/spreadsheets/d/1of2XyX_-zz-JWTNd3Xls26QPbKzmRISDshZF3OzNVBs/edit?gid=0#gid=0") %>% 
-  as.data.frame() %>% 
-  select(-to_change, -pid)
-
-weekly_processed <- weekly_processed %>%
-  left_join(pid_dup_visits, by = c("uuid" = "uuid")) %>%
-  mutate(pid = if_else(!is.na(new_value), new_value, pid)) %>% 
-  select(-new_value)
-
-weekly_raw_2 <- weekly_raw_2 %>%
-  left_join(pid_dup_visits, by = c("id" = "uuid")) %>%
-  mutate(new_value = as.character(new_value)) %>% 
-  mutate(pid = if_else(!is.na(new_value), new_value, pid)) %>% 
-  select(-new_value)
+### Deleted the cleaning of two visits in one day because they are now in the form_correction in SQL.
 
 # Removed historical filtering of weekly processed data by UUID
 # Removed age updates and admission extreme value processing
@@ -1053,90 +944,4 @@ current_processed <- current_processed %>%
   mutate(lean_season = month(status_date) %in% c(6, 7, 8, 9),
          rainy_season = month(status_date) %in% c(5, 6, 7, 8, 9, 10))
 
-### BRIANNA Save full CSV files locally ###
-FULL_admit_processed <- admit_processed %>%
-  filter(pid %in% current_pids)
-full_admit_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_admit_processed_", Sys.Date(), ".csv")
-write.csv(FULL_admit_processed, file = full_admit_processed_file_name, row.names = FALSE)
-
-FULL_weekly_processed <- weekly_processed %>%
-  filter(pid %in% current_pids)
-full_weekly_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_weekly_processed_", Sys.Date(), ".csv")
-write.csv(FULL_weekly_processed, file = full_weekly_processed_file_name, row.names = FALSE)
-
-FULL_current_processed <- current_processed %>%
-  filter(pid %in% current_pids)
-full_current_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_current_processed_", Sys.Date(), ".csv")
-write.csv(FULL_current_processed, file = full_current_processed_file_name, row.names = FALSE)
-
-FULL_admit_raw_2 <- admit_raw_2 %>%
-  filter(pid %in% current_pids)
-full_admit_raw_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_admit_raw_", Sys.Date(), ".csv")
-write.csv(FULL_admit_raw_2, file = full_admit_raw_processed_file_name, row.names = FALSE)
-
-FULL_weekly_raw_2 <- weekly_raw_2 %>%
-  filter(pid %in% current_pids)
-full_weekly_raw_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_weekly_raw_", Sys.Date(), ".csv")
-write.csv(FULL_weekly_raw_2, file = full_weekly_raw_processed_file_name, row.names = FALSE)
-
-FULL_itp_roster <- itp_roster %>%
-  filter(pid %in% current_pids)
-full_itp_roster_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_itp_roster_", Sys.Date(), ".csv")
-write.csv(FULL_itp_roster, file = full_itp_roster_file_name, row.names = FALSE)
-
-FULL_relapse_raw_2 <- relapse_raw_2 %>%
-  filter(pid %in% current_pids)
-full_relapse_raw_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_relapse_raw", Sys.Date(), ".csv")
-write.csv(FULL_relapse_raw_2, file = full_relapse_raw_file_name, row.names = FALSE)
-
-FULL_mh_raw_2 <- mh_raw_2 %>%
-  filter(pid %in% current_pids)
-full_mh_raw_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/FULL_pba_mh_raw", Sys.Date(), ".csv")
-write.csv(FULL_mh_raw_2, file = full_mh_raw_file_name, row.names = FALSE)
-
-settlement_loc_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/pba_settlement_loc_", Sys.Date(), ".csv")
-write.csv(settlement_loc2, file = settlement_loc_file_name, row.names = FALSE)
-
-#files for google drive
-FULL_admit_processed_for_google <- admit_processed %>%
-  filter(pid %in% current_pids)
-full_admit_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_admit_processed_2024-11-15.csv")
-write.csv(FULL_admit_processed, file = full_admit_processed_file_name, row.names = FALSE)
-
-FULL_weekly_processed_for_google <- weekly_processed %>%
-  filter(pid %in% current_pids)
-full_weekly_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_weekly_processed_2024-11-15.csv")
-write.csv(FULL_weekly_processed, file = full_weekly_processed_file_name, row.names = FALSE)
-
-FULL_current_processed_for_google <- current_processed %>%
-  filter(pid %in% current_pids)
-full_current_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_current_processed_2024-11-15.csv")
-write.csv(FULL_current_processed, file = full_current_processed_file_name, row.names = FALSE)
-
-FULL_admit_raw_2_for_google <- admit_raw_2 %>%
-  filter(pid %in% current_pids)
-full_admit_raw_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_admit_raw_2024-11-15.csv")
-write.csv(FULL_admit_raw_2, file = full_admit_raw_processed_file_name, row.names = FALSE)
-
-FULL_weekly_raw_2_for_google <- weekly_raw_2 %>%
-  filter(pid %in% current_pids)
-full_weekly_raw_processed_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_weekly_raw_2024-11-15.csv")
-write.csv(FULL_weekly_raw_2, file = full_weekly_raw_processed_file_name, row.names = FALSE)
-
-FULL_itp_roster_for_google <- itp_roster %>%
-  filter(pid %in% current_pids)
-full_itp_roster_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_itp_roster_2024-11-15.csv")
-write.csv(FULL_itp_roster, file = full_itp_roster_file_name, row.names = FALSE)
-
-FULL_relapse_raw_2_for_google <- relapse_raw_2 %>%
-  filter(pid %in% current_pids)
-full_relapse_raw_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_relapse_raw2024-11-15.csv")
-write.csv(FULL_relapse_raw_2, file = full_relapse_raw_file_name, row.names = FALSE)
-
-FULL_mh_raw_2_for_google <- mh_raw_2 %>%
-  filter(pid %in% current_pids)
-full_mh_raw_file_name <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/FULL_pba_mh_raw2024-11-15.csv")
-write.csv(FULL_mh_raw_2, file = full_mh_raw_file_name, row.names = FALSE)
-
-settlement_loc_file_name_for_google <- paste0("C:/Users/beale/Documents/Taimaka/taimaka_data/google/pba_settlement_loc_2024-11-15.csv")
-write.csv(settlement_loc2, file = settlement_loc_file_name, row.names = FALSE)
+### Deleted all the code used to save the files locally. Just need to make sure our outputs of this code match the inputs for Brian. 
