@@ -18,7 +18,7 @@ def main() -> Dict[str, str]:
     Currently, it returns a simple greeting message.
 
     In the future, this function will serve as a wrapper around five other functions:
-    - `get_cleaned_data`: to fetch cleaned data from the Postgres database.
+    - `get_cleaned_data`: to fetch data from Postgres and ODK. Cleanup raw data.
     - `create_weekly_data`: to process the cleaned data into one row per patient-week.
     - `create_time_series_data`: to create time series data from the weekly data.
         (This is the model-ready data.)
@@ -30,7 +30,6 @@ def main() -> Dict[str, str]:
 
     # TODO: Call the necessary functions in the correct order. It will look something like this:
     # cleaned_data = get_cleaned_data()
-    # weekly_data = create_weekly_data(cleaned_data)
     # time_series_data = create_time_series_data(weekly_data)
     # predictions, shap_values = run_inference(time_series_data)
     # save_predictions(predictions, shap_values)
