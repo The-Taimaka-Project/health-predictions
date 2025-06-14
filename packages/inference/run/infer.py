@@ -155,22 +155,8 @@ def export_waterfall_shap_values(explainer2,detn,features):
 
 
 def read_detn(label):
-  # Load the deterioration time series, admit plus up to 3 visits before the event
-  detn = pd.read_csv(dir + f"/{label}.csv")
-  with open(dir + f"/{label}.json", 'r') as f:
-    detn_dtypes = json.load(f)
-  # prompt: apply detn_types to detn
-
-  # Iterate over the dictionary and apply the data types to detn2
-  for col, dtype in detn_dtypes.items():
-    if col in detn.columns:
-        try:
-            if dtype == 'category':
-                detn[col] = detn[col].astype('object') # Read as object, convert to category later if needed
-            else:
-                detn[col] = detn[col].astype(dtype)
-        except Exception as e:
-            logger.error(f"Could not convert column {col} to {dtype}: {e}")
+  with open(dir + f'{label}.pkl', 'rb') as f:
+    detn = pickle.load(f)
   return detn
 
 
@@ -183,10 +169,8 @@ New onset medical complication - 'cat1' complication (see vars in raw ODK data w
 # prompt: use pickle to read deterioration dataframe
 label = 'new_onset_medical_complication'
 
-#detn = read_detn(label)
+detn = read_detn(label)
 
-with open(dir + f'{label}.pkl', 'rb') as f:
-  detn = pickle.load(f)
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
 
@@ -475,9 +459,6 @@ logger.debug(pid_probabilities.shape)
 # muac loss 2 weeks consecutive
 
 label = 'muac_loss_2_weeks_consecutive'
-
-#with open(dir + f'{label}.pkl', 'rb') as f:
-#  detn = pickle.load(f)
 
 detn = read_detn(label)
 
