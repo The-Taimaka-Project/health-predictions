@@ -23,6 +23,10 @@ to get the dataframes that this notebook depends on
 # TODO change to digital ocean
 MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
 
+# above this percentile, active, label = 0 will have their shap values calculated
+TOP_PCT = 0.50
+EXPORT_SHAP_WATERFALL = True
+
 !pip install import_ipynb --quiet
 
 #!pip install shap --quiet
@@ -111,26 +115,51 @@ simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=FutureWarning)
 
 pid_probabilities = admit_current[['pid','status','site_current']].copy()
+active_pids = pid_probabilities[pid_probabilities['status']=='active']['pid'].unique()
 logger.debug(pid_probabilities.shape)
 
-def read_detn(label):
-  # Load the deterioration time series, admit plus up to 3 visits before the event
-  detn = pd.read_csv(dir + f"/{label}.csv")
-  with open(dir + f"/{label}.json", 'r') as f:
-    detn_dtypes = json.load(f)
-  # prompt: apply detn_types to detn
+def export_waterfall_shap_values(explainer2,detn,features):
+  import shap
 
-  # Iterate over the dictionary and apply the data types to detn2
-  for col, dtype in detn_dtypes.items():
-    if col in detn.columns:
-        try:
-            if dtype == 'category':
-                detn[col] = detn[col].astype('object') # Read as object, convert to category later if needed
-            else:
-                detn[col] = detn[col].astype(dtype)
-        except Exception as e:
-            logger.error(f"Could not convert column {col} to {dtype}: {e}")
+  shap_values_all = explainer2.shap_values(detn[features]) # Calculate SHAP values
+
+  exp_all = shap.Explanation(shap_values_all,
+                       explainer2.expected_value,
+                       data=detn[features].values,
+                       feature_names=features)
+
+
+  # prompt: create a json object combining each array occurrence of exp_all.values with the corresponding array occurence of exp_all.data
+
+  json_objects = []
+  for shap_values_array, feature_values_array in zip(exp_all.values, exp_all.data):
+      # Create a dictionary for the current instance
+      data_dict = {
+          'base_probability': exp_all.base_values,
+          'shap_values': shap_values_array.tolist(),
+          'feature_values': feature_values_array.tolist(),
+          'feature_names': exp_all.feature_names
+      }
+      json_objects.append(data_dict)
+
+  # prompt: zip detn['pid'] and json_objects into a dict keyed by detn['pid']
+
+  json_dict = dict(zip(detn['pid'], json_objects))
+
+
+  # Example: Create a Series from the json_dict where the index is the pid
+  json_series = pd.Series(json_dict)
+  return json_series
+
+
+
+
+def read_detn(label):
+  with open(dir + f'{label}.pkl', 'rb') as f:
+    detn = pickle.load(f)
   return detn
+
+
 
 """# new onset medical complication
 
@@ -140,10 +169,8 @@ New onset medical complication - 'cat1' complication (see vars in raw ODK data w
 # prompt: use pickle to read deterioration dataframe
 label = 'new_onset_medical_complication'
 
-#detn = read_detn(label)
+detn = read_detn(label)
 
-with open(dir + f'{label}.pkl', 'rb') as f:
-  detn = pickle.load(f)
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
 
@@ -185,6 +212,9 @@ logger.debug(f'{detn[label].sum()},{detn[label].mean()},{detn.shape}')
 
 def run_ag_model(label,detn,suffix):
   from autogluon.tabular import TabularDataset, TabularPredictor
+  from util import AutogluonWrapper
+  import shap
+
 
   model_path = f"{MODEL_PATH}/{label}{suffix}/"
   predictor = TabularPredictor.load(model_path,require_py_version_match=False,require_version_match=False)
@@ -195,23 +225,35 @@ def run_ag_model(label,detn,suffix):
 
   y_pred_proba_all = predictor.predict_proba(detn[ag_features])
 
-  return y_pred_proba_all
+  target_class = 1  # can be any possible value of the label column
+  negative_class = 0
+  baseline = detn[ag_features][detn[label]==negative_class].sample(20, random_state=0)
+  ag_wrapper = AutogluonWrapper(predictor, ag_features, target_class)
+  explainer = shap.KernelExplainer(ag_wrapper.predict_proba, baseline)
 
+
+  return y_pred_proba_all,explainer,ag_features
 detn_admit_only,_,_,_ = split_detn_new_onset_medical_complication(detn,label)
 
 #detn_admit_only = make_dummy_columns(detn_admit_only)
 pid_not_in_admit = detn[~detn['pid'].isin(detn_admit_only['pid'])]['pid']
 detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 
-y_pred_proba_all1 = run_ag_model(label,detn_admit_only,'1')
-y_pred_proba_all2 = run_ag_model(label,detn_filtered,'not1')
+y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,'1')
+y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,'not1')
 
-#y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2,y_pred_proba_all3,y_pred_proba_all4],axis=0)
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
 pid_probabilities = pid_probabilities.join(y_pred_proba_all_stratified_series)
 
+# prompt: percentrank of ''probability_new_onset_medical_complication_stratified'
+pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'probability_{label}_stratified'].rank(pct=True)
+top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
 
+if EXPORT_SHAP_WATERFALL:
+  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
+  json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2)
+  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series, json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 # survival
 logger.debug(f'{detn[label].sum()},{detn.shape}')
@@ -330,11 +372,18 @@ detn = reduce_dimensionality(detn,['resp_rate', 'temperature'],'resp_rate_temper
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
 # infer
-y_pred_proba_all = run_ag_model(label,detn,'')
+y_pred_proba_all,explainer,ag_features = run_ag_model(label,detn,'')
 
 pred_proba_all_series = y_pred_proba_all[1].rename(f'probability_{label}')
 pid_probabilities = pid_probabilities.join(pred_proba_all_series)
 logger.debug(pid_probabilities.shape)
+
+pid_probabilities[f'percentrank_{label}'] = pid_probabilities[f'probability_{label}'].rank(pct=True)
+top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}'] > TOP_PCT]['pid'].unique()
+if EXPORT_SHAP_WATERFALL:
+  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features)
+  pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+
 
 
 # survival
@@ -411,9 +460,6 @@ logger.debug(pid_probabilities.shape)
 
 label = 'muac_loss_2_weeks_consecutive'
 
-#with open(dir + f'{label}.pkl', 'rb') as f:
-#  detn = pickle.load(f)
-
 detn = read_detn(label)
 
 
@@ -441,11 +487,18 @@ detn = reduce_dimensionality(detn,['wk1_muac_diff_rate','muac_diff_ratio_rate','
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
 # run inference
-y_pred_proba_all = run_ag_model(label,detn,'')
+y_pred_proba_all,explainer,ag_features = run_ag_model(label,detn,'')
 
 pred_proba_all_series = y_pred_proba_all[1].rename(f'probability_{label}')
 pid_probabilities = pid_probabilities.join(pred_proba_all_series)
 logger.debug(pid_probabilities.shape)
+
+pid_probabilities[f'percentrank_{label}'] = pid_probabilities[f'probability_{label}'].rank(pct=True)
+top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}'] > TOP_PCT]['pid'].unique()
+if EXPORT_SHAP_WATERFALL:
+  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features)
+  pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+
 
 # survival
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
@@ -562,11 +615,18 @@ detn = reduce_dimensionality(detn,['duration_days','wk1_calc_los'],'duration_z')
 #detn.drop(columns=['duration_days','wk1_calc_los'],inplace=True)
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
-y_pred_proba_all = run_ag_model(label,detn,'')
+y_pred_proba_all,explainer,ag_features = run_ag_model(label,detn,'')
 
 pred_proba_all_series = y_pred_proba_all[1].rename(f'probability_{label}')
 pid_probabilities = pid_probabilities.join(pred_proba_all_series)
 logger.debug(pid_probabilities.shape)
+
+pid_probabilities[f'percentrank_{label}'] = pid_probabilities[f'probability_{label}'].rank(pct=True)
+top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}'] > TOP_PCT]['pid'].unique()
+if EXPORT_SHAP_WATERFALL:
+  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features)
+  pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+
 
 label = 'status_dead'
 
@@ -637,13 +697,21 @@ detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 detn_filtered.replace([np.inf, -np.inf], np.nan, inplace=True)
 
 
-y_pred_proba_all1 = run_ag_model(label,detn_admit_only,'1')
-y_pred_proba_all2 = run_ag_model(label,detn_filtered,'not1')
+y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,'1')
+y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,'not1')
 
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
 pid_probabilities = pid_probabilities.join(y_pred_proba_all_stratified_series)
 logger.debug(pid_probabilities.shape)
+
+pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'probability_{label}_stratified'].rank(pct=True)
+top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
+if EXPORT_SHAP_WATERFALL:
+  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
+  json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2)
+  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series, json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+
 
 # clip for better visualization and so AFT models will work, guaranteeing all durations >0
 #max_duration = detn[detn[label]==1]['duration_days'].max() +1
