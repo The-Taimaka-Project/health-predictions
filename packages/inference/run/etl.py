@@ -3,6 +3,7 @@ This script will contain functions that load cleaned data from the Postgres data
 and process it into weekly data.
 """
 
+from globals import logger, DO_DIRECTORY
 from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress
 # set FAIL_MODE to True if exceptions should be raised
 FAIL_MODE = True
