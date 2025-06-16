@@ -1699,11 +1699,11 @@ admit_raw = admit_current.iloc[:, :first_current_column].copy()
 
 # prompt: write admit_current and left_admit_weekly to csv and export them to [PBA] Data\analysis
 def write_to_analysis():
-    admit_current.to_csv(dir + "analysis/admit_current.csv", index=False)
-    admit_current_mh.to_csv(dir + "analysis/admit_current_mh.csv", index=False)
-    admit_current_relapse.to_csv(dir + "analysis/admit_current_relapse.csv", index=False)
-    admit_weekly.to_csv(dir + "analysis/admit_current_weekly.csv", index=False)
-    weekly_joined.to_csv(dir + "analysis/weekly.csv", index=False)
+    # admit_current.to_csv(dir + "analysis/admit_current.csv", index=False)
+    # admit_current_mh.to_csv(dir + "analysis/admit_current_mh.csv", index=False)
+    # admit_current_relapse.to_csv(dir + "analysis/admit_current_relapse.csv", index=False)
+    # admit_weekly.to_csv(dir + "analysis/admit_current_weekly.csv", index=False)
+    # weekly_joined.to_csv(dir + "analysis/weekly.csv", index=False)
     # prompt: pickle admit_current and write to "analysis/admit_current.pkl"
 
     # Pickle admit_current and write to "analysis/admit_current.pkl"
