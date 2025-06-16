@@ -1422,14 +1422,7 @@ for col in deterioration_types:
     export[col] = export[col].astype(int)
     export["row_count"].fillna(0, inplace=True)
     export["weekly_row_count"].fillna(0, inplace=True)
-    #with open(dir + f"analysis/{col}.pkl", "wb") as f:
-    #    pickle.dump(export, f)
+    logger.debutg(f'{export.shape}, {export["pid"].nunique()}, {export[col].sum()}')
+    with open(dir + f"analysis/{col}.pkl", "wb") as f:
+        pickle.dump(export, f)
 
-    detn_dtypes = export.dtypes    
-    # Convert the Series to a dictionary
-    detn_dtypes_dict = detn_dtypes.apply(lambda x: x.name).to_dict()
-    # Export datatypes to JSON so inference model can apply to csv 
-    with open(dir + f"analysis/{col}.json", 'w') as f:
-      json.dump(detn_dtypes_dict, f, indent=2)
-    # Export dataframe to csv for digital ocean
-    export.to_csv(dir + f"analysis/{col}.csv", index=False) 
