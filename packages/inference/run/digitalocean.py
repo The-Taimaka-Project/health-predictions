@@ -46,8 +46,8 @@ class DigitalOceanStorage:
         endpoint_url: str
             The URL of the DigitalOcean Space.
         """
-        do_key = os.environ["TAIMAKA_DO_ACCESS_KEY"]
-        do_secret = os.environ["TAIMAKA_DO_SECRET_KEY"]
+        do_key = os.environ.get("TAIMAKA_DO_ACCESS_KEY")
+        do_secret = os.environ.get("TAIMAKA_DO_SECRET_KEY")
 
         # check if we got the credentials; if not, raise an error
         if not do_key or not do_secret:
