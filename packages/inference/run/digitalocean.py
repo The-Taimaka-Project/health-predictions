@@ -22,7 +22,7 @@ Example usage:
     # read the DataFrame back from DigitalOcean Spaces
     df_read = do_storage.read_csv("path/to/file.csv")
 
-To-do: add methods for reading and writing other file types (JSON and pickle).
+To-do: add methods for reading and writing other file types (JSON, pickle, and zipfiles).
 """
 
 
@@ -60,7 +60,7 @@ class DigitalOceanStorage:
         session = boto3.session.Session()
         self.client = session.client(
             "s3",
-            region_name="lon1",
+            region_name=endpoint_url.split(".digitalocean")[0].split(".")[-1],
             endpoint_url=endpoint_url,
             aws_access_key_id=do_key,
             aws_secret_access_key=do_secret,
