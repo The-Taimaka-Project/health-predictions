@@ -10,9 +10,16 @@ Example usage:
     import pandas as pd
     from digitalocean import DigitalOceanStorage
 
+    # initialize the class
     do_storage = DigitalOceanStorage()
+
+    # create an example DataFrame
     df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+
+    # save the DataFrame to DigitalOcean Spaces
     do_storage.save_dataframe_to_digitalocean(df, "path/to/file.csv")
+
+    # read the DataFrame back from DigitalOcean Spaces
     df_read = do_storage.read_dataframe_from_digitalocean("path/to/file.csv")
 
 To-do: add methods for reading and writing other file types (JSON and pickle).
