@@ -1,41 +1,42 @@
-# name: deploy-serverless-function
+name: deploy-serverless-function
 
-# on:
-#  pull_request:
-#    branches:
-#      - main
+on:
+    pull_request:
+        branches:
+            - main
 
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@main
 
-#       - name: Install DigitalOcean CLI
-#         run: sudo snap install doctl
+      - name: Install DigitalOcean CLI
+        run: sudo snap install doctl
 
-#       - name: Authenticate with DigitalOcean
-#         run: doctl auth init --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Authenticate with DigitalOcean
+        run: doctl auth init --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
-#       - name: Install DigitalOcean serverless tools
-#         run: doctl serverless install
+      - name: Install DigitalOcean serverless tools
+        run: doctl serverless install
 
-#       - name: Deploy to DigitalOcean Serverless
-#         env:
-#           # the ETL and inference code will pick up Postgres / ODK credentials
-#           # from these environment variables. (Currently, they are unused.)
-#           TAIMAKA_POSTGRES_USER: ${{ secrets.TAIMAKA_POSTGRES_USER }}
-#           TAIMAKA_POSTGRES_PW: ${{ secrets.TAIMAKA_POSTGRES_PW }}
-#           TAIMAKA_ODK_USER: ${{ secrets.TAIMAKA_ODK_USER }}
-#           TAIMAKA_ODK_PW: ${{ secrets.TAIMAKA_ODK_PW }}
+      - name: Deploy to DigitalOcean Serverless
+        env:
+          # the ETL and inference code will pick up Postgres / ODK credentials
+          # from these environment variables. (Currently, they are unused.)
+          TAIMAKA_POSTGRES_USER: ${{ secrets.TAIMAKA_POSTGRES_USER }}
+          TAIMAKA_POSTGRES_PW: ${{ secrets.TAIMAKA_POSTGRES_PW }}
+          TAIMAKA_ODK_USER: ${{ secrets.TAIMAKA_ODK_USER }}
+          TAIMAKA_ODK_PW: ${{ secrets.TAIMAKA_ODK_PW }}
 
-#         run: |
-#           # just testing the secrets are available. All outputs should be 0. (Delete later.)
-#           [ "$TAIMAKA_POSTGRES_USER" != "" ]; echo $?
-#           [ "$TAIMAKA_POSTGRES_PW" != "" ]; echo $?
-#           [ "$TAIMAKA_ODK_USER" != "" ]; echo $?
-#           [ "$TAIMAKA_ODK_PW" != "" ]; echo $?
+        run: |
+          # just testing the secrets are available. All outputs should be 0. (Delete later.)
+          [ "$TAIMAKA_POSTGRES_USER" != "" ]; echo $?
+          [ "$TAIMAKA_POSTGRES_PW" != "" ]; echo $?
+          [ "$TAIMAKA_ODK_USER" != "" ]; echo $?
+          [ "$TAIMAKA_ODK_PW" != "" ]; echo $?
 
-#           doctl serverless connect taimaka-health-predictions
-#           doctl serverless deploy .
+          # Not working yet, so commented out.
+          # doctl serverless connect taimaka-health-predictions
+          # doctl serverless deploy .
