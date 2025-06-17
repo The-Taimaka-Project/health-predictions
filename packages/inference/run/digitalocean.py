@@ -17,10 +17,10 @@ Example usage:
     df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
 
     # save the DataFrame to DigitalOcean Spaces
-    do_storage.save_dataframe_to_digitalocean(df, "path/to/file.csv")
+    do_storage.to_csv(df, "path/to/file.csv")
 
     # read the DataFrame back from DigitalOcean Spaces
-    df_read = do_storage.read_dataframe_from_digitalocean("path/to/file.csv")
+    df_read = do_storage.read_csv("path/to/file.csv")
 
 To-do: add methods for reading and writing other file types (JSON and pickle).
 """
@@ -52,13 +52,11 @@ class DigitalOceanStorage:
         # check if we got the credentials; if not, raise an error
         if not do_key or not do_secret:
             raise KeyError(
-                "Your DigitalOcean credentials could not be found "
-                "in the environment variables 'TAIMAKA_DO_ACCESS_KEY', "
-                "'TAIMAKA_DO_SECRET_KEY'."
+                "Your DigitalOcean credentials could not be found in the environment variables "
+                "'TAIMAKA_DO_ACCESS_KEY', 'TAIMAKA_DO_SECRET_KEY'."
             )
 
         # Initialize a session using DigitalOcean Spaces
-        endpoint_url = "https://taimaka-health-predictions-storage.lon1.digitaloceanspaces.com"
         session = boto3.session.Session()
         self.client = session.client(
             "s3",
@@ -68,9 +66,7 @@ class DigitalOceanStorage:
             aws_secret_access_key=do_secret,
         )
 
-    def save_dataframe_to_digitalocean(
-        self, df: pd.DataFrame, path: str, bucket: str = "inference-workflow"
-    ) -> None:
+    def to_csv(self, df: pd.DataFrame, path: str, bucket: str = "inference-workflow") -> None:
         """
         Save a pandas dataframe to DigitalOcean Spaces.
 
@@ -86,19 +82,15 @@ class DigitalOceanStorage:
         # save dataframe to buffer then push buffer to DO
         buffer = StringIO()
         df.to_csv(buffer, index=False)
-        response = self.client.put_object(
-            Bucket=bucket,
-            Key=path,
-            Body=buffer.getvalue(),
-        )
+        response = self.client.put_object(Bucket=bucket, Key=path, Body=buffer.getvalue())
+
+        # check if the response was successful
         if response["ResponseMetadata"]["HTTPStatusCode"] >= 400:
             raise ValueError(f"An error occurred: {response.get('Error')}")
 
-    def read_dataframe_from_digitalocean(
-        self, path: str, bucket: str = "inference-workflow"
-    ) -> pd.DataFrame:
+    def read_csv(self, path: str, bucket: str = "inference-workflow") -> pd.DataFrame:
         """
-        Read a pandas dataframe from DigitalOcean Spaces.
+        Read a CSV from DigitalOcean Spaces.
 
         Parameters
         ----------
@@ -106,6 +98,11 @@ class DigitalOceanStorage:
             the path to read, e.g., "path/to/file.csv".
         bucket: str
             an optional prefix for the filepath. The default is "inference-workflow".
+
+        Returns
+        -------
+        pd.DataFrame
+            the dataframe read from the CSV file in DigitalOcean Spaces.
         """
         response = self.client.get_object(Bucket=bucket, Key=path)
         return pd.read_csv(BytesIO(response["Body"].read()))
