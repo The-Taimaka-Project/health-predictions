@@ -5,6 +5,8 @@ this function when it is invoked. (The schedule is set in the `project.yml` file
 
 from typing import Dict
 
+from globals import logger
+
 # TODO: Import the necessary functions. E.g.,
 #   from etl import get_cleaned_data, create_weekly_data
 #   from etl_deterioration import create_time_series_data
@@ -35,5 +37,5 @@ def main() -> Dict[str, str]:
     # save_predictions(predictions, shap_values)
 
     greeting = "Hello from the inference function"
-    print(greeting)
+    logger.info(greeting)
     return {"body": greeting}
