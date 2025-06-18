@@ -18,10 +18,3 @@ packages:
           environment: {}
           annotations: {}
           limits: {}
-
-          # schedule the function to run every day
-          triggers:
-            - name: trigger-inference-every-day
-              sourceType: scheduler
-              sourceDetails:
-                cron: "0 0 * * *"  # every day at midnight UTC
