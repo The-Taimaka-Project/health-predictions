@@ -22,12 +22,23 @@ Example usage:
     # read the DataFrame back from DigitalOcean Spaces
     df_read = do_storage.read_csv("path/to/file.csv")
 
-To-do: add methods for reading and writing other file types (JSON, pickle, and zipfiles).
+    # you can pickle it too
+    do_storage.to_pickle(df, "path/to/file.pkl")
+    df_read_pickle = do_storage.read_pickle("path/to/file.pkl")
+
+    # how about jsons
+    my_dict = {"a": 1, "b": 2}
+    do_storage.to_json(my_dict, "path/to/file.json")
+    read_my_dict = do_storage.read_json("path/to/file.json")
+
+To-do: add methods for storing and loading AutoGluon models as zipfiles.
 """
 
-
+import json
 import os
+import pickle
 from io import BytesIO, StringIO
+from typing import Any, Dict
 
 import boto3
 import pandas as pd
@@ -106,3 +117,83 @@ class DigitalOceanStorage:
         """
         response = self.client.get_object(Bucket=bucket, Key=path)
         return pd.read_csv(BytesIO(response["Body"].read()))
+
+    def to_pickle(self, object: Any, path: str, bucket: str = "inference-workflow") -> None:
+        """
+        Save an object to DigitalOcean Spaces as a pickle.
+
+        Parameters
+        ----------
+        object: Any
+            the object you want to save to DO.
+        path: str
+            the path to save the file, e.g., "path/to/file.pkl".
+        bucket: str
+            an optional prefix for the filepath. The default is "inference-workflow".
+        """
+        pickle_bytes = pickle.dumps(object)
+        response = self.client.put_object(Bucket=bucket, Key=path, Body=pickle_bytes)
+
+        # check if the response was successful
+        if response["ResponseMetadata"]["HTTPStatusCode"] >= 400:
+            raise ValueError(f"An error occurred: {response.get('Error')}")
+
+    def read_pickle(self, path: str, bucket: str = "inference-workflow") -> Any:
+        """
+        Read a pickle from DigitalOcean Spaces.
+
+        Parameters
+        ----------
+        path: str
+            the path to read, e.g., "path/to/file.pkl".
+        bucket: str
+            an optional prefix for the filepath. The default is "inference-workflow".
+
+        Returns
+        -------
+        Any
+            the object read from the pickle file in DigitalOcean Spaces.
+        """
+        response = self.client.get_object(Bucket=bucket, Key=path)
+        return pickle.loads(response["Body"].read())
+
+    def to_json(
+        self, object: Dict[str, Any], path: str, bucket: str = "inference-workflow"
+    ) -> None:
+        """
+        Save a dictionary to DigitalOcean Spaces as a JSON file.
+
+        Parameters
+        ----------
+        object: Dict[str, Any]
+            the dictionary you want to save to DO.
+        path: str
+            the path to save the file, e.g., "path/to/file.json".
+        bucket: str
+            an optional prefix for the filepath. The default is "inference-workflow".
+        """
+        json_bytes = json.dumps(object).encode("utf-8")
+        response = self.client.put_object(Bucket=bucket, Key=path, Body=json_bytes)
+
+        # check if the response was successful
+        if response["ResponseMetadata"]["HTTPStatusCode"] >= 400:
+            raise ValueError(f"An error occurred: {response.get('Error')}")
+
+    def read_json(self, path: str, bucket: str = "inference-workflow") -> Dict[str, Any]:
+        """
+        Read a JSON file from DigitalOcean Spaces.
+
+        Parameters
+        ----------
+        path: str
+            the path to read, e.g., "path/to/file.json".
+        bucket: str
+            an optional prefix for the filepath. The default is "inference-workflow".
+
+        Returns
+        -------
+        Dict[str, Any]
+            the dictionary read from the JSON file in DigitalOcean Spaces.
+        """
+        response = self.client.get_object(Bucket=bucket, Key=path)
+        return json.loads(response["Body"].read().decode("utf-8"))
