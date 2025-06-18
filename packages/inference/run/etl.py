@@ -4,7 +4,7 @@ and process it into weekly data.
 """
 
 from globals import logger, DO_DIRECTORY
-from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress
+from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress, EtlReaderWriter
 # set FAIL_MODE to True if exceptions should be raised
 FAIL_MODE = True
 # set TRAIN_MODE to True if rows should be dropped if weekly cadence skips more than 4 weeks (1% of weekly patients)
@@ -26,26 +26,10 @@ simplefilter(action="ignore", category=pd.errors.SettingWithCopyWarning)
 
 
 # TODO: replace Google Drive with Postgres database
+reader_writer = EtlReaderWriter()
 
-def read_data():
-
-    from google.colab import drive
-
-    drive.mount("/content/drive")
-
-    dir = "/content/drive/My Drive/[PBA] Full datasets/"
-
-    current = pd.read_csv(dir + "FULL_pba_current_processed_2024-11-15.csv")
-    admit = pd.read_csv(dir + "FULL_pba_admit_processed_2024-11-15.csv")
-    weekly = pd.read_csv(dir + "FULL_pba_weekly_processed_2024-11-15.csv")
-    raw = pd.read_csv(dir + "FULL_pba_admit_raw_2024-11-15.csv")
-    weekly_raw = pd.read_csv(dir + "FULL_pba_weekly_raw_2024-11-15.csv")
-    itp = pd.read_csv(dir + "FULL_pba_itp_roster_2024-11-15.csv")
-    relapse = pd.read_csv(dir + "FULL_pba_relapse_raw2024-11-15.csv")
-    mh = pd.read_csv(dir + "FULL_pba_mh_raw2024-11-15.csv")
-    return current,admit,weekly,rw,weekly_raw,ipt,relapse,mh
-
-current,admit,weekly,rw,weekly_raw,ipt,relapse,mh = read_data()
+# Call the read method method
+current, admit, weekly, raw, weekly_raw, itp, relapse, mh = reader_writer.read_data()
 
 
 logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
