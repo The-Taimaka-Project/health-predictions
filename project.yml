@@ -1,20 +1,7 @@
-parameters: {}
-environment: {}  # TODO: secret API keys for authenticating to Postgres and DO will populate here
-
 packages:
     - name: inference
-      shared: false
-      environment: {}
-      parameters: {}
-      annotations: {}
       functions:
         - name: hello  # change to "run" later. Just testing for now.
-          binary: false
           main: ""
           runtime: python:default
           web: true
-          webSecure: false
-          parameters: {}
-          environment: {}
-          annotations: {}
-          limits: {}
