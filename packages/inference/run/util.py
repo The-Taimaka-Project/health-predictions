@@ -24,6 +24,61 @@ class EtlReaderWriter:
     mh = pd.read_csv(dir + "FULL_pba_mh_raw2024-11-15.csv")
     return current,admit,weekly,raw,weekly_raw,itp,relapse,mh
 
+class DetnReaderWriter:
+  """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
+  def __init__(self):
+    from google.colab import drive
+    drive.mount("/content/drive")
+  
+  def read_new_onset_medical_complication():
+  """Reads and preprocesses the dataframe for 'new_onset_medical_complication'.
+
+  This function performs the following steps:
+  1. Reads the pickle file for the 'new_onset_medical_complication' label.
+  2. Filters the dataframe to include only rows where 'weekly_last_admit' is not null.
+  3. Drops specified columns ('c_admission_other', 'phone_owner_other',
+     'calc_dayssincevita', and columns starting with 'y_cat1').
+  4. Rounds 'wk1_calc_los' to the nearest integer and 'weekly_last_muac' to
+     one decimal place.
+  5. Fills missing 'wk1_calc_los' values with 0.
+  6. Filters the dataframe based on defined LOS_CUTOFF and MUAC_CUTOFF values.
+  7. Reduces the dimensionality of related columns by creating Z-scores
+     and dropping the original columns.
+  8. Logs the shape, sum of the label, mean of the label, and shape after filtering.
+
+  Returns:
+    A tuple containing:
+      - detn: The preprocessed pandas DataFrame.
+      - label: The string 'new_onset_medical_complication'.
+  """
+  label = 'new_onset_medical_complication'
+
+  detn = read_detn(label)
+
+  detn = detn[detn['weekly_last_admit'].notnull()].copy()
+
+  detn.drop(columns='c_admission_other',inplace=True) # causes duplicate column if get_dummies invoked
+  detn.drop(columns='phone_owner_other',inplace=True) # messes up get_dummies
+  detn.drop(columns='calc_dayssincevita',inplace=True) # incorrectly calculated for non-active, messes up detn_wk1_only models
+
+  
+
+  detn['wk1_calc_los'] = round(detn['wk1_calc_los'],0)
+  detn['weekly_last_muac'] = round(detn['weekly_last_muac'],1)
+
+  detn['wk1_calc_los'].fillna(0,inplace=True)
+  LOS_CUTOFF = 12
+  MUAC_CUTOFF = 12.5
+  
+
+  detn = detn[(detn['weekly_last_muac']< MUAC_CUTOFF) & (detn['wk1_calc_los']< LOS_CUTOFF) ].copy()
+
+  detn = reduce_dimensionality(detn,['muac_diff_ratio','muac'],'muac_diff_ratio_z')
+  detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
+
+  return detn,label
+
+
 def make_populated_column(detn, variable):
     detn[f"{variable}_populated"] = detn[variable].notnull().astype(int)
     return detn, f"{variable}_populated"
