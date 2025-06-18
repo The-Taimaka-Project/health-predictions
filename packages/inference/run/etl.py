@@ -27,7 +27,7 @@ simplefilter(action="ignore", category=pd.errors.SettingWithCopyWarning)
 
 # TODO: replace Google Drive with Postgres database
 
-def read_data()
+def read_data():
 
     from google.colab import drive
 
