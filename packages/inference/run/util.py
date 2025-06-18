@@ -10,11 +10,9 @@ class EtlReaderWriter:
   def __init__(self):
     from google.colab import drive
     drive.mount("/content/drive")
-    import pandas as pd
-    self.pd = pd
-
 
   def read_data(self):
+    import pandas as pd
     dir = "/content/drive/My Drive/[PBA] Full datasets/"
     current = pd.read_csv(dir + "FULL_pba_current_processed_2024-11-15.csv")
     admit = pd.read_csv(dir + "FULL_pba_admit_processed_2024-11-15.csv")
