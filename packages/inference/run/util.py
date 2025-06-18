@@ -6,11 +6,12 @@
 # 2. move all imports to the top of the file
 
 class EtlReaderWriter:
-  """Class for reading/writing ETL data to/from DigitalOcean Spaces or Google Drive."""
+  """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
   def __init__(self):
     from google.colab import drive
+    import pandas as pd
     drive.mount("/content/drive")
-    
+
 
   def read_data(self):
     dir = "/content/drive/My Drive/[PBA] Full datasets/"
@@ -23,7 +24,6 @@ class EtlReaderWriter:
     relapse = pd.read_csv(dir + "FULL_pba_relapse_raw2024-11-15.csv")
     mh = pd.read_csv(dir + "FULL_pba_mh_raw2024-11-15.csv")
     return current,admit,weekly,raw,weekly_raw,itp,relapse,mh
-
 
 def make_populated_column(detn, variable):
     detn[f"{variable}_populated"] = detn[variable].notnull().astype(int)
