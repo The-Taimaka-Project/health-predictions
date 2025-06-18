@@ -1,7 +1,6 @@
 name: deploy-serverless-function
 
 on:
-  push:
   pull_request:
     branches:
       - main
@@ -13,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@main
 
-      # - name: Deploy to DigitalOcean
+      # - name: Deploy to DigitalOcean as an App
       #   uses: digitalocean/app_action/deploy@v2
       #   with:
       #     token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
