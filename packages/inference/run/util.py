@@ -9,8 +9,9 @@ class EtlReaderWriter:
   """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
   def __init__(self):
     from google.colab import drive
-    import pandas as pd
     drive.mount("/content/drive")
+    import pandas as pd
+    self.pd = pd
 
 
   def read_data(self):
