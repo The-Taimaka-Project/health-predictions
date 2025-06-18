@@ -26,6 +26,11 @@ Example usage:
     do_storage.to_pickle(df, "path/to/file.pkl")
     df_read_pickle = do_storage.read_pickle("path/to/file.pkl")
 
+    # how about jsons
+    my_dict = {"a": 1, "b": 2}
+    do_storage.to_json(my_dict, "path/to/file.json")
+    read_my_dict = do_storage.read_json("path/to/file.json")
+
 To-do: add methods for storing and loading AutoGluon models as zipfiles.
 """
 
