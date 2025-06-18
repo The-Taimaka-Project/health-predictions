@@ -1,6 +1,7 @@
 name: deploy-serverless-function
 
 on:
+  push:
   pull_request:
     branches:
       - main
