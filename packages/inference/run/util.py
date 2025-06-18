@@ -5,6 +5,24 @@
 # 1. add docstrings and type-hinting to all functions
 # 2. move all imports to the top of the file
 
+class EtlReaderWriter:
+  """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
+  def __init__(self):
+    from google.colab import drive
+    drive.mount("/content/drive")
+
+  def read_data(self):
+    import pandas as pd
+    dir = "/content/drive/My Drive/[PBA] Full datasets/"
+    current = pd.read_csv(dir + "FULL_pba_current_processed_2024-11-15.csv")
+    admit = pd.read_csv(dir + "FULL_pba_admit_processed_2024-11-15.csv")
+    weekly = pd.read_csv(dir + "FULL_pba_weekly_processed_2024-11-15.csv")
+    raw = pd.read_csv(dir + "FULL_pba_admit_raw_2024-11-15.csv")
+    weekly_raw = pd.read_csv(dir + "FULL_pba_weekly_raw_2024-11-15.csv")
+    itp = pd.read_csv(dir + "FULL_pba_itp_roster_2024-11-15.csv")
+    relapse = pd.read_csv(dir + "FULL_pba_relapse_raw2024-11-15.csv")
+    mh = pd.read_csv(dir + "FULL_pba_mh_raw2024-11-15.csv")
+    return current,admit,weekly,raw,weekly_raw,itp,relapse,mh
 
 def make_populated_column(detn, variable):
     detn[f"{variable}_populated"] = detn[variable].notnull().astype(int)
