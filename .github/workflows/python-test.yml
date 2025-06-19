@@ -24,6 +24,3 @@ jobs:
         
     - name: Run tests
       run: python -m unittest discover -s tests/ # Command to run your tests
-
-    - name: Run tests
-      run: pytest # Command to run your tests
