@@ -10,3 +10,4 @@ DO_SPACE_PREFIX = "inference"
 DO_DIRECTORY = f"{DO_SPACE_URL}/{DO_SPACE_PREFIX}"
 
 ETL_DIR = 'etl/'
+MODEL_DIR = 'model/'
