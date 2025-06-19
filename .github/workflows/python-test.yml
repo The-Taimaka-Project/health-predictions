@@ -1,0 +1,29 @@
+name: Python Tests
+
+on: [push] # Trigger the workflow on every push event
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Specify the operating system environment for the job
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@main # Action to checkout your code
+
+    - name: Set up Python
+      uses: actions/setup-python@main # Action to set up Python
+      with:
+        python-version: '3.x' # Specify the desired Python version
+
+    - name: Install dependencies
+      run: |
+        # python -m pip install --upgrade pip
+        # pip install pytest # Install pytest for running tests
+        # Install other dependencies listed in requirements.txt if applicable
+        # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Run tests
+      run: python -m unittest discover -s tests/ # Command to run your tests
+
+    - name: Run tests
+      run: pytest # Command to run your tests
