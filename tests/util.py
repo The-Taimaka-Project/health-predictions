@@ -68,7 +68,7 @@ class TestDetnReaderWriter(unittest.TestCase):
         mock_pickle_load.return_value = mock_data
 
         # Instantiate the class
-        reader = DetnReaderWriter()
+        reader = util.DetnReaderWriter()
 
         # Call the method to test
         label_to_read = 'test_label'
@@ -132,7 +132,7 @@ class TestDetnReaderWriter(unittest.TestCase):
         mock_reduce_dimensionality.side_effect = lambda df, cols, new_col: df.drop(columns=cols).assign(**{new_col: 1.0}) # Simplify reduce_dimensionality effect for testing
 
         # Instantiate the class and call the method
-        reader = DetnReaderWriter()
+        reader = util.DetnReaderWriter()
         detn, label = reader.read_new_onset_medical_complication()
 
         # Assertions
