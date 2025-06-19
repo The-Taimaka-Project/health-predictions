@@ -1,8 +1,6 @@
 # !git clone -b brian-etl-code https://github.com/The-Taimaka-Project/health-predictions.git
 
 # %cd health-predictions/packages/inference/run
-import os
-os.chdir("/health-predictions/packages/inference/run")
 
 import util
 
