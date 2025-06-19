@@ -6,7 +6,7 @@ from packages.inference.run import util
 
 import unittest
 from unittest.mock import patch, MagicMock
-from pandas import pandas as pd
+import pandas as pd
 from google.colab import drive
 
 class TestEtlReaderWriter(unittest.TestCase):
