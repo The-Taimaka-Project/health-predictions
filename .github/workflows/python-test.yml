@@ -1,6 +1,6 @@
 name: Python Tests
 
-on: [push] # Trigger the workflow on every push event
+on: pull_request # Trigger the workflow on every pull request event
 
 jobs:
   build:
