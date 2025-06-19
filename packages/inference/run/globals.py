@@ -8,3 +8,6 @@ logger.setLevel(logging.INFO)
 DO_SPACE_URL = "https://taimaka-health-predictions-storage.lon1.digitaloceanspaces.com"
 DO_SPACE_PREFIX = "inference"
 DO_DIRECTORY = f"{DO_SPACE_URL}/{DO_SPACE_PREFIX}"
+
+ETL_DIR = 'etl/'
+MODEL_DIR = 'model/'
