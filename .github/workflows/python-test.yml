@@ -23,4 +23,4 @@ jobs:
         # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         
     - name: Run tests
-      run: python -m unittest discover -s /tests/ # Command to run your tests
+      run: python -m unittest discover -s tests/util_test.py # Command to run your tests
