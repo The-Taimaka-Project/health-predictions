@@ -2,7 +2,7 @@
 
 # %cd health-predictions/packages/inference/run
 
-import util
+from packages.inference.run import util
 
 import unittest
 from unittest.mock import patch, MagicMock
