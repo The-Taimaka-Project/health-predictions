@@ -26,18 +26,25 @@ class EtlReaderWriter:
 
 class DetnReaderWriter:
   """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
-  def __init__(self):
+    def __init__(self):
     self.dir = "/content/drive/My Drive/[PBA] Data/analysis/"
     # Set global output format to Pandas
     from sklearn import set_config
+    from digitalocean import DigitalOceanStorage  
     set_config(transform_output="pandas")
-
-
-  def read_detn(self,label):
+    self.do_storage = DigitalOceanStorage()
+    
+  def read_detn_google_drive(self,label):
     import pickle
     with open(self.dir + f'{label}.pkl', 'rb') as f:
       detn = pickle.load(f)
-    return detn  
+    return detn
+
+  def read_detn(self,label):
+    from globals import ETL_DIR
+    detn = self.do_storage.read_pickle( ETL_DIR + f'{label}.pkl')
+    return detn      
+ 
 
   def read_new_onset_medical_complication(self):
 
