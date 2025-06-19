@@ -43,7 +43,7 @@ class TestAIC(unittest.TestCase):
         expected_aic = 2 * k - 2 * np.log(expected_sse)
 
         # Call the function under test with the mock model and true values
-        calculated_aic = calculate_aic(mock_model, np.zeros((n, k)), y_true) # X is not used in this simplified calculate_aic, pass a placeholder
+        calculated_aic = util.calculate_aic(mock_model, np.zeros((n, k)), y_true) # X is not used in this simplified calculate_aic, pass a placeholder
 
         self.assertAlmostEqual(calculated_aic, expected_aic, places=5)
 
