@@ -2,7 +2,7 @@
 
 # %cd health-predictions/packages/inference/run
 import os
-os.chdir("/content/health-predictions/packages/inference/run")
+os.chdir("/health-predictions/packages/inference/run")
 
 import util
 
