@@ -7,14 +7,14 @@ It expects the DigitalOcean credentials to be set in the environment variables
 
 Example usage:
 
-    import pandas as pd
     from digitalocean import DigitalOceanStorage
 
     # initialize the class
     do_storage = DigitalOceanStorage()
 
     # create an example DataFrame
-    df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+    import pandas as pd
+    df = pd.DataFrame({"col1": [0, 1, 1], "col2": [3, 4, 5]})
 
     # save the DataFrame to DigitalOcean Spaces
     do_storage.to_csv(df, "path/to/file.csv")
@@ -31,17 +31,29 @@ Example usage:
     do_storage.to_json(my_dict, "path/to/file.json")
     read_my_dict = do_storage.read_json("path/to/file.json")
 
-To-do: add methods for storing and loading AutoGluon models as zipfiles.
+    # and you can save and load AutoGluon models, with custom metadata
+    from autogluon.tabular import TabularPredictor
+
+    predictor = TabularPredictor(label="col1")
+    predictor.fit(df)
+    do_storage.to_autogluon_tarball(
+        predictor, model_metadata={"something": "anything"}, path="path/to/model.tar.gz"
+    )
+    loaded_model, metadata = do_storage.read_autogluon_tarball(path="path/to/model.tar.gz")
 """
 
 import json
 import os
 import pickle
+import tarfile
 from io import BytesIO, StringIO
-from typing import Any, Dict
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any, Dict, Tuple
 
 import boto3
 import pandas as pd
+from autogluon.tabular import TabularPredictor
 
 # Importing the default URL from globals.py
 from globals import DO_SPACE_URL
@@ -197,3 +209,115 @@ class DigitalOceanStorage:
         """
         response = self.client.get_object(Bucket=bucket, Key=path)
         return json.loads(response["Body"].read().decode("utf-8"))
+
+    def to_autogluon_tarball(
+        self,
+        predictor: TabularPredictor,
+        path: str,
+        bucket: str = "inference-workflow",
+        model_metadata: Dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Save an AutoGluon TabularPredictor to DigitalOcean Spaces as a TAR file.
+
+        Parameters
+        ----------
+        predictor: TabularPredictor
+            the AutoGluon TabularPredictor you want to save to DO.
+        path: str
+            the path to save the file, e.g., "path/to/file.tar.gz".
+        bucket: str
+            an optional prefix for the filepath. The default is "inference-workflow".
+        model_metadata: Dict[str, Any] | None
+            optional metadata to include in the saved model. If provided, it will be saved as a
+            JSON file alongside the model files. This is useful for versioning, e.g.:
+
+            model_metadata = {
+                "version": "0.1.0",
+                "inputs": [<list_of_input_features>],
+                "outputs": [<list_of_output_features>],
+                "description": (
+                    "Predicts chance of health complication given 2 weeks of patient metrics."
+                ),
+                "feature_engineering": (
+                    "<feature_1> is normalized, <feature_2> is one-hot encoded, etc.",
+                ),
+                "contact": "Brain Chaplin",
+            }
+        """
+        with TemporaryDirectory() as tempdir:
+            tempdir_path = Path(tempdir)
+
+            # save the predictor if it hasn't been saved already
+            predictor.save()
+
+            # list the files we want to save
+            files_to_save = [str(Path(predictor.path) / fn) for fn in os.listdir(predictor.path)]
+
+            # save the model metadata if provided
+            if model_metadata is not None:
+                metadata_path = tempdir_path / "model_metadata.json"
+                with open(str(metadata_path), "w") as json_file:
+                    json.dump(model_metadata, json_file)
+
+                # add the metadata file to the list of files to save
+                files_to_save.append(str(metadata_path))
+
+            # zip up the contents of the temporary directory
+            with tarfile.open(str(tempdir_path / "model.tar.gz"), "w:gz") as tar:
+                for file in files_to_save:
+                    tar.add(file, arcname=file.split("/")[-1], recursive=True)
+
+            # upload the tar file to DigitalOcean Spaces
+            self.client.upload_file(
+                Bucket=bucket, Key=path, Filename=str(tempdir_path / "model.tar.gz")
+            )
+
+    def read_autogluon_tarball(
+        self, path: str, bucket: str = "inference-workflow", local_path: str | None = None
+    ) -> Tuple[TabularPredictor, Dict[str, Any]]:
+        """
+        Read an AutoGluon TabularPredictor from DigitalOcean Spaces.
+
+        Parameters
+        ----------
+        path: str
+            the path to read, e.g., "path/to/file.tar.gz".
+        bucket: str
+            an optional prefix for the filepath. The default is "inference-workflow".
+        local_path: str | None
+            the local path where the TAR file will be downloaded. Defaults to {working_directory}/model.
+
+        Returns
+        -------
+        Tuple[TabularPredictor, Dict[str, Any]]
+            A tuple containing:
+            - predictor: TabularPredictor
+                the AutoGluon TabularPredictor read from the TAR file in DigitalOcean Spaces.
+            - metadata: Dict[str, Any]
+                the metadata read from the JSON file in the TAR file, if it exists.
+        """
+        # create local directory if not provided
+        if local_path is None:
+            local_path = "model"
+
+        # download the tar file from DigitalOcean Spaces
+        with TemporaryDirectory() as tempdir:
+            filename = str(Path(tempdir) / "model.tar.gz")
+            self.client.download_file(Bucket=bucket, Key=path, Filename=filename)
+
+            # extract the contents of the tar file
+            with tarfile.open(filename, "r:gz") as tar:
+                tar.extractall(path=local_path)
+
+        # load the predictor from the extracted files
+        predictor = TabularPredictor.load(local_path)
+
+        # if metadata was saved, load it
+        metadata = {}
+        metadata_path = Path(local_path) / "model_metadata.json"
+        if metadata_path.exists():
+            with open(metadata_path, "r") as json_file:
+                metadata = json.load(json_file)
+
+        return predictor, metadata
