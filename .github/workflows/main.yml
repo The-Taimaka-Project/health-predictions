@@ -1,19 +1,19 @@
-name: deploy-serverless-function
+name: unit test
 
 on:
-  pull_request:
-    branches:
-      - main
+  push:
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@main
 
-      # - name: Deploy to DigitalOcean as an App
-      #   uses: digitalocean/app_action/deploy@v2
-      #   with:
-      #     token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-      #     app_spec_location: "./project.yaml"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests
