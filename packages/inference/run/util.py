@@ -849,9 +849,8 @@ def decision_tree_f1(max_depth, X_train, y_train, X_test, y_test):
 # prompt: get AIC value for model
 # Assuming 'model' is your trained LGBMRegressor model and X_train_transformed, y_train are available
 # Calculate AIC
+import numpy as np
 def calculate_aic(model, X: np.ndarray, y: np.ndarray) -> float:
-    import numpy as np
-
     y_pred = model.predict(X)
     n = len(y)
     k = len(model.feature_importances_)  # Number of features (parameters) in your model
