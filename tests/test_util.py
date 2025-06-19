@@ -3,6 +3,10 @@
 # %cd health-predictions/packages/inference/run
 
 from packages.inference.run import util
+import unittest
+from unittest.mock import MagicMock
+import numpy as np
+
 
 # prompt: unittest calculate_aic mock model.predict to return an array
 
