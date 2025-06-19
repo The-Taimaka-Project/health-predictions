@@ -1,6 +1,6 @@
 name: Python Tests
 
-on: pull_request # Trigger the workflow on every pull request event
+on: push # Trigger the workflow on every pull request event
 
 jobs:
   build:
@@ -23,4 +23,4 @@ jobs:
         # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         
     - name: Run tests
-      run: python -m unittest discover -s tests/ # Command to run your tests
+      run: python -m unittest discover -s /tests/ # Command to run your tests
