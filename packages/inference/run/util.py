@@ -26,7 +26,7 @@ class EtlReaderWriter:
 
 class DetnReaderWriter:
   """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
-    def __init__(self):
+  def __init__(self):
     self.dir = "/content/drive/My Drive/[PBA] Data/analysis/"
     # Set global output format to Pandas
     from sklearn import set_config
