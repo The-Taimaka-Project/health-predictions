@@ -49,7 +49,7 @@ import tarfile
 from io import BytesIO, StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional
 
 import boto3
 import pandas as pd
@@ -215,7 +215,7 @@ class DigitalOceanStorage:
         predictor: TabularPredictor,
         path: str,
         bucket: str = "inference-workflow",
-        model_metadata: Dict[str, Any] | None = None,
+        model_metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Save an AutoGluon TabularPredictor to DigitalOcean Spaces as a TAR file.
@@ -274,7 +274,7 @@ class DigitalOceanStorage:
             )
 
     def read_autogluon_tarball(
-        self, path: str, bucket: str = "inference-workflow", local_path: str | None = None
+        self, path: str, bucket: str = "inference-workflow", local_path: Optional[str] = None
     ) -> Tuple[TabularPredictor, Dict[str, Any]]:
         """
         Read an AutoGluon TabularPredictor from DigitalOcean Spaces.
