@@ -1,7 +1,7 @@
 packages:
     - name: inference
       functions:
-        - name: hello  # change to "run" later. Just testing for now.
+        - name: test_inference_function
           main: ""
-          runtime: python:default
+          runtime: python:3.11
           web: true
