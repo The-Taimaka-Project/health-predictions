@@ -12,9 +12,13 @@ MODEL_PATH = (
 
 
 def main(args):
-    name = args.get("name", "stranger")
-    logger.info("Starting inference function.")
-    storage = DigitalOceanStorage()
-    predictor = storage.read_autogluon_tarball(MODEL_PATH)
-    logger.info("Model successfully loaded.")
-    return {"body": f"Hi, {name}. Model loaded successfully."}
+    try:
+        name = args.get("name", "stranger")
+        logger.info("Starting inference function.")
+        storage = DigitalOceanStorage()
+        predictor = storage.read_autogluon_tarball(MODEL_PATH)
+        logger.info("Model successfully loaded.")
+        return {"body": f"Hi, {name}. Model loaded successfully."}
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+        return {"body": f"An error occurred: {e}"}
