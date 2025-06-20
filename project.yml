@@ -1,7 +1,11 @@
+environment:
+    TAIMAKA_DO_ACCESS_KEY: "${TAIMAKA_DO_ACCESS_KEY}"
+    TAIMAKA_DO_SECRET_KEY: "${TAIMAKA_DO_SECRET_KEY}"
+
 packages:
     - name: inference
       functions:
-        - name: test_inference_function
+        - name: run
           main: ""
           runtime: python:3.11
           web: true
