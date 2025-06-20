@@ -11,9 +11,10 @@ MODEL_PATH = (
 )
 
 
-def main():
+def main(args):
+    name = args.get("name", "stranger")
     logger.info("Starting inference function.")
     storage = DigitalOceanStorage()
     predictor = storage.read_autogluon_tarball(MODEL_PATH)
     logger.info("Model successfully loaded.")
-    return {"body": "Model loaded successfully."}
+    return {"body": f"Hi, {name}. Model loaded successfully."}
