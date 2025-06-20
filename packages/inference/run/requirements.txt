@@ -1,1 +1,1 @@
-autogluon.tabular[lightgbm,catboost]
+lightgbm
