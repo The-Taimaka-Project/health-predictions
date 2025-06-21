@@ -5,6 +5,8 @@
 # 1. add docstrings and type-hinting to all functions
 # 2. move all imports to the top of the file
 
+import pandas as pd
+
 class EtlReaderWriter:
   """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
   def __init__(self):
@@ -1994,7 +1996,6 @@ def plot_anthros(
     plt.title(f"wfh, hfa, and wfa over Time for {pid}")
     # ax.legend()
     plt.show()
-
 
 def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,drop_weight: bool = True,drop_height: bool = True,columns_to_keep: set = {}) -> pd.DataFrame:
   """
