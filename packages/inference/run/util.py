@@ -32,7 +32,7 @@ class DetnReaderWriter:
     self.dir = "/content/drive/My Drive/[PBA] Data/analysis/"
     # Set global output format to Pandas
     from sklearn import set_config
-    from digitalocean import DigitalOceanStorage  
+    from packages.inference.run.digitalocean import DigitalOceanStorage  
     set_config(transform_output="pandas")
     self.do_storage = DigitalOceanStorage()
     
