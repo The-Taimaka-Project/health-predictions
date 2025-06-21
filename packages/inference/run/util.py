@@ -70,7 +70,7 @@ class DetnReaderWriter:
         - detn: The preprocessed pandas DataFrame.
         - label: The string 'new_onset_medical_complication'.
     """
-    from util import reduce_dimensionality
+    from packages.inference.run.util import reduce_dimensionality
     label = 'new_onset_medical_complication'
 
     detn = self.read_detn(label)
@@ -2507,7 +2507,7 @@ def ag_model_load_suffix(label, frac, detn, suffix):
 
     os.chdir("/content/drive/My Drive/[PBA] Code")
 
-    from util import AutogluonWrapper
+    from packages.inference.run.util import AutogluonWrapper
 
     os.chdir("/content")
     MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
