@@ -43,7 +43,7 @@ class DetnReaderWriter:
     return detn
 
   def read_detn(self,label):
-    from globals import ETL_DIR
+    from packages.inference.run.globals import ETL_DIR
     detn = self.do_storage.read_pickle( ETL_DIR + f'{label}.pkl')
     return detn      
  
