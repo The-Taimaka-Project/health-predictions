@@ -5,6 +5,8 @@
 # 1. add docstrings and type-hinting to all functions
 # 2. move all imports to the top of the file
 
+import pandas as pd
+
 class EtlReaderWriter:
   """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
   def __init__(self):
@@ -30,7 +32,7 @@ class DetnReaderWriter:
     self.dir = "/content/drive/My Drive/[PBA] Data/analysis/"
     # Set global output format to Pandas
     from sklearn import set_config
-    from digitalocean import DigitalOceanStorage  
+    from packages.inference.run.digitalocean import DigitalOceanStorage  
     set_config(transform_output="pandas")
     self.do_storage = DigitalOceanStorage()
     
@@ -41,7 +43,7 @@ class DetnReaderWriter:
     return detn
 
   def read_detn(self,label):
-    from globals import ETL_DIR
+    from packages.inference.run.globals import ETL_DIR
     detn = self.do_storage.read_pickle( ETL_DIR + f'{label}.pkl')
     return detn      
  
@@ -68,7 +70,7 @@ class DetnReaderWriter:
         - detn: The preprocessed pandas DataFrame.
         - label: The string 'new_onset_medical_complication'.
     """
-    from util import reduce_dimensionality
+    from packages.inference.run.util import reduce_dimensionality
     label = 'new_onset_medical_complication'
 
     detn = self.read_detn(label)
@@ -1995,6 +1997,117 @@ def plot_anthros(
     # ax.legend()
     plt.show()
 
+def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,drop_weight: bool = True,drop_height: bool = True,columns_to_keep: set = {}) -> pd.DataFrame:
+  """
+  drop columns that happen as a result of the deterioration, reverse causality
+  """
+  detn_columns = detn.columns
+  columns_to_delete = {col for col in detn.columns if 'interpolated' in col}
+  # could be caused by poor (or good) weight gain
+  columns_to_delete.update({col for col in detn.columns if 'sachets' in col})
+  columns_to_delete.update({col for col in detn.columns if 'receivingitp_filter' in col})
+  columns_to_delete.update({col for col in detn.columns if 'discharge' in col})
+
+
+  columns_to_delete.update({col for col in detn.columns if 'dose' in col})
+  columns_to_delete.update({col for col in detn.columns if 'rationweeks' in col})
+  columns_to_delete.update({col for col in detn.columns if 'nv_date' in col})
+  columns_to_delete.update({col for col in detn.columns if 'eligible' in col})
+  columns_to_delete.update({col for col in detn.columns if 'drugs' in col})
+  columns_to_delete.update({col for col in detn.columns if 'dischq' in col})
+  columns_to_delete.update({col for col in detn.columns if 'lag' in col})
+  # Actively receiving treatment may because of complication rather than predicting it
+  columns_to_delete.update({col for col in detn.columns if 'status_text' in col})
+  # set to 1 if Actively receiving treatment
+  columns_to_delete.update({col for col in detn.columns if 'correct_status' in col})
+  # for zero weeks (those w/o wk1) completely determines new onset complication, by def'n
+  
+  columns_to_delete.update({col for col in detn.columns if 'weekly_row_count' in col})
+  columns_to_delete.update({col for col in detn.columns if 'form_version' in col})
+  columns_to_delete.update({col for col in detn.columns if 'submitter_id' in col})
+
+  # for the 4 in that have only 1 week, if either is set to 1, then new complications always 0, probably caused by new onset complication, rather than predicting it
+  columns_to_delete.update({col for col in detn.columns if 'imci_emergency_otp' in col})
+  columns_to_delete.update({col for col in detn.columns if 'referred_emergency' in col})
+
+  columns_to_delete.update({col for col in detn.columns if 'lastms' in col})
+  columns_to_delete.update({col for col in detn.columns if 'otp' in col})
+  columns_to_delete.update({col for col in detn.columns if 'precalcsite' in col})
+  columns_to_delete.update({col for col in detn.columns if 'numweeksback' in col})
+  columns_to_delete.update({col for col in detn.columns if 'glbsite' in col})
+  columns_to_delete.update({col for col in detn.columns if 'autosite' in col})
+  columns_to_delete.update({col for col in detn.columns if 'additionalnotes' in col})
+  columns_to_delete.update({col for col in detn.columns if 'wast' in col})
+  columns_to_delete.update({col for col in detn.columns if 'attachments' in col})
+  columns_to_delete.update({col for col in detn.columns if 'photo' in col})
+  columns_to_delete.update({col for col in detn.columns if 'picture' in col})
+  columns_to_delete.update({col for col in detn.columns if 'canmovevisit' in col})
+  columns_to_delete.update({col for col in detn.columns if 'staffmember' in col})
+  #detn.drop(columns=[col for col in detn.columns if 'bednet' in col})
+  columns_to_delete.update({col for col in detn.columns if 'receivedsmc' in col})
+  columns_to_delete.update({col for col in detn.columns if 'device' in col})
+  columns_to_delete.update({col for col in detn.columns if 'lookup_calc' in col})
+  columns_to_delete.update({col for col in detn.columns if 'submitter' in col})
+  columns_to_delete.update({col for col in detn.columns if 'dose' in col})
+  columns_to_delete.update({col for col in detn.columns if 'settlement' in col})
+  columns_to_delete.update({col for col in detn.columns if 'calcdate' in col})
+
+  columns_to_delete.update({col for col in detn.columns if 'manual_daystonv' in col})
+  columns_to_delete.update({col for col in detn.columns if 'resp_rate_2' in col})
+  columns_to_delete.update({col for col in detn.columns if 'doneses' in col})
+  columns_to_delete.update({col for col in detn.columns if 'end_time' in col})
+  columns_to_delete.update({col for col in detn.columns if 'endtime' in col})
+  columns_to_delete.update({col for col in detn.columns if 'submissiondate' in col})
+  columns_to_delete.update({col for col in detn.columns if 'name' in col})
+  columns_to_delete.update({col for col in detn.columns if 'pp_cm' in col})
+  columns_to_delete.update({col for col in detn.columns if 'starttime' in col})
+  columns_to_delete.update({col for col in detn.columns if 'submission_date' in col})
+  columns_to_delete.update({col for col in detn.columns if 'start_time' in col})
+  columns_to_delete.update({col for col in detn.columns if 'last_admit' in col})
+  columns_to_delete.update({col for col in detn.columns if 'c_assigned_cm' in col})
+  columns_to_delete.update({col for col in detn.columns if 'first_admit' in col})
+  columns_to_delete.update({col for col in detn.columns if 'site_admit' in col})
+  #detn.drop(columns=[col for col in detn.columns if '_week' in col and col not in ['muac_loss_2_weeks_consecutive']})
+  columns_to_delete.update({col for col in detn.columns if 'site_admit' in col})
+  columns_to_delete.update({col for col in detn.columns if 'site_admit' in col})
+  columns_to_delete.update({col for col in detn.columns if col.endswith('_week') and not col.endswith('_weekly')})
+  if drop_muac:
+    columns_to_delete.update({col for col in detn.columns if 'muac' in col and col not in ['weekly_last_muac','muac_loss_2_weeks_consecutive']})
+  columns_to_delete.update({col for col in detn.columns if 'todate' in col})
+  columns_to_delete.update({col for col in detn.columns if col.endswith('_age')})
+  columns_to_delete.update({col for col in detn.columns if 'birthdate' in col})
+  columns_to_delete.update({col for col in detn.columns if 'vax_dates' in col})
+  columns_to_delete.update({col for col in detn.columns if col.startswith('vd_')})
+  columns_to_delete.update({col for col in detn.columns if 'sequence_num' in col})
+  columns_to_delete.update({col for col in detn.columns if col.endswith('visitnum')})
+  columns_to_delete.update({col for col in detn.columns if 'row_count' in col})
+  columns_to_delete.update({col for col in detn.columns if 'los' in col and col not in ['wk1_calc_los','detn_weight_loss_ever','muac_loss_2_weeks_consecutive']})
+  columns_to_delete.update({col for col in detn.columns if 'time_minutes' in col})
+  if drop_height:
+    columns_to_delete.update({col for col in detn.columns if 'hl' in col and col not in ['hl_trend']})
+    columns_to_delete.update({col for col in detn.columns if 'hfa' in col and col not in ['hfa_trend']})
+
+  columns_to_delete.update({col for col in detn.columns if 'form' in col })
+  columns_to_delete.update({col for col in detn.columns if 'date' in col })
+  columns_to_delete.update({col for col in detn.columns if 'drug_record' in col })
+  columns_to_delete.update({col for col in detn.columns if col.endswith('vax')})
+  if drop_weight:
+    columns_to_delete.update({col for col in detn.columns if 'wfa' in col and col not in ['wfa_trend']})
+    columns_to_delete.update({col for col in detn.columns if 'wfh' in col and col not in ['weekly_last_wfh']})
+    columns_to_delete.update({col for col in detn.columns if 'weight' in col and col not in ['wk1_weight_diff_rate','detn_weight_loss_ever']})
+
+  recent_admit_columns = ['c_imci_emergency', 'where_referred_emergency', 'other_state', 'other_lga', 'ts_assessed_malnstatus', 'ts_assessed_needitp', 'manual_nvdate', 'pt_photo', 'supp_vd_ipv1', 'supp_vd_rota2', 'supp_vd_rota3', 'supp_vd_ipv2', 'cleaning_note']
+  recent_raw_columns = ['b_dpth_sorethroat', 'b_dpth_diffswallow', 'b_dpth_bloody', 'b_dpth_lymph', 'b_suspecteddipth', 'ofstaffmember', 'spec_imci_em_other', 'other_state', 'other_lga', 'b_figurepid', 'manual_prev_status', 'c_azafu_symptoms', 'b_azafu_multivomitepi', 'b_azafu_vomitl24', 'c_azafu_vomitl24freq', 'b_azafu_vomiteveryoral', 'b_azafu_soughtcare', 'c_azafu_whycare', 'b_azafu_overnightcare', 'c_azafu_whyovernightcare', 'c_azafu_urinefreq', 'c_azafu_urinecolor', 'b_azafu_otherprob', 'b_azafu_reqclinician', 'proceed_previnel', 'inac_weight_measurement', 'hl_measurement', 'c_physician_assess', 'b_phys_req_itp', 'muac_measurement', 'indiv_valid_admit', 'manual_admit_type_other', 'patient_picture', 'cg_relationship_other', 'phone_owner_other', 'otherlang_text', 'referring_other', 'migrate_reason_other', 'b_receivedsmc', 'b_bednet', 'c_bednettype', 'wall_type_other', 'drinking_water_other', 'toilet_other', 'resp_rate_2', 'resp_rate_3', 'cat1_diarrhea', 'orash_other_text', 'b_swellingtender', 'q_conf_override_lref', 'why_noaccepthts', 'supp_vd_ipv1', 'supp_vd_rota2', 'supp_vd_rota3', 'supp_vd_ipv2', 'pp_ipv1_precalc', 'pp_rota2_precalc', 'pp_rota3_precalc', 'pp_ipv2_precalc', 'override_conf', 'why_override_rat', 'manual_treatment', 'conf_initremover', 'remdrug_filter', 'rem_drugs_which', 'expl_remal_act', 'expl_remlorat', 'expl_remnystatin', 'expl_remtetra', 'expl_remzincox', 'expl_remotomed', 'conf_twoaddover', 'conf_changedose', 'confirmmovevisit', 'manual_nvdate', 'manual_daystonv', 'vita_dose', 'b_isinedc']
+  weekly_columns_to_delete = {'wk3_backuplength', 'wk3_wfh_edc_status', 'wk2_wfh_edc_status', 'wk2_backuplength', 'wk1_wfh_edc_status', 'wk1_backuplength'}
+  weekly_raw_columns_to_delete = {'wk1_expl_remlorat', 'wk3_expl_remroutalbend', 'wk2_calc_anthro_eligibledischarge_enhanced', 'wk2_why_override_rat', 'wk1_muac_measurement', 'wk1_calc_anthro_eligibledischarge_normal', 'wk3_why_override_rat', 'wk3_confirmmovevisit', 'wk1_pull_edc_consent', 'wk3_expl_addaa_act', 'wk3_calc_anthro_eligibledischarge', 'wk1_instance_name', 'wk3_wfh_edc_threshold', 'wk2_expl_remroutalbend', 'wk3_pull_edc_consent', 'wk3_b_contprogram_possexclucrit', 'wk1_expl_remotomed', 'wk3_hl_measurement', 'wk1_manual_treatment', 'wk2_hl_measurement', 'wk1_wfh_edc_threshold', 'wk3_pull_dischargecriteria', 'wk2_confirmmovevisit', 'wk3_muac_measurement', 'wk2_calc_anthro_eligibledischarge_normal', 'wk3_expl_remaa_act', 'wk2_pull_edc_consent', 'wk3_d_possexclucrit', 'wk1_expl_remaa_act', 'wk3_calc_anthro_eligibledischarge_normal', 'wk1_pull_dischargecriteria', 'wk2_muac_measurement', 'wk2_calc_anthro_eligibledischarge', 'wk2_pull_dischargecriteria', 'wk3_expl_remotomed', 'wk3_instance_name', 'wk1_d_possexclucrit', 'wk1_calc_anthro_eligibledischarge_enhanced', 'wk1_b_contprogram_possexclucrit', 'wk1_why_override_rat', 'wk2_b_contprogram_possexclucrit', 'wk2_instance_name', 'wk2_expl_remaa_act', 'wk3_expl_addroutalben', 'wk1_expl_remroutalbend', 'wk2_manual_treatment', 'wk1_confirmmovevisit', 'wk2_d_possexclucrit', 'wk1_calc_anthro_eligibledischarge', 'wk2_expl_addroutalben', 'wk2_expl_remotomed', 'wk1_expl_addroutalben', 'wk2_expl_remlorat', 'wk1_hl_measurement', 'wk3_manual_treatment', 'wk2_expl_addaa_act', 'wk3_expl_remlorat', 'wk1_expl_addaa_act', 'wk2_wfh_edc_threshold', 'wk3_calc_anthro_eligibledischarge_enhanced'} - set(weekly_columns_to_delete)
+  columns_to_delete.update(recent_admit_columns)
+  columns_to_delete.update(recent_raw_columns)
+  columns_to_delete.update(weekly_columns_to_delete)
+  columns_to_delete.update(weekly_raw_columns_to_delete)
+  columns_to_delete = columns_to_delete - columns_to_keep
+  detn.drop(columns=columns_to_delete.intersection(set(detn.columns)),inplace=True)  
+  return detn
+
 
 def drop_recent_columns(detn, use_cache=True, months=15):
     import pandas as pd
@@ -2394,7 +2507,7 @@ def ag_model_load_suffix(label, frac, detn, suffix):
 
     os.chdir("/content/drive/My Drive/[PBA] Code")
 
-    from util import AutogluonWrapper
+    from packages.inference.run.util import AutogluonWrapper
 
     os.chdir("/content")
     MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
