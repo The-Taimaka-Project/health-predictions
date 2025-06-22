@@ -38,7 +38,7 @@ EXPORT_SHAP_WATERFALL = True
 #!git clone https://github.com/The-Taimaka-Project/health-predictions.git
 
 # Change directory to the repository
-# %cd health-predictions/packages/inference/run
+# %cd health-predictions/taimaka_health_predictions/inference
 # %pwd
 #TODO move util here
 

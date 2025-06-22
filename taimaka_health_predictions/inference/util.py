@@ -32,7 +32,7 @@ class DetnReaderWriter:
     self.dir = "/content/drive/My Drive/[PBA] Data/analysis/"
     # Set global output format to Pandas
     from sklearn import set_config
-    from packages.inference.run.digitalocean import DigitalOceanStorage  
+    from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage  
     set_config(transform_output="pandas")
     self.do_storage = DigitalOceanStorage()
     
@@ -43,7 +43,7 @@ class DetnReaderWriter:
     return detn
 
   def read_detn(self,label):
-    from packages.inference.run.globals import ETL_DIR
+    from taimaka_health_predictions.utils.globals import ETL_DIR
     detn = self.do_storage.read_pickle( ETL_DIR + f'{label}.pkl')
     return detn      
  
@@ -70,7 +70,7 @@ class DetnReaderWriter:
         - detn: The preprocessed pandas DataFrame.
         - label: The string 'new_onset_medical_complication'.
     """
-    from packages.inference.run.util import reduce_dimensionality
+    from taimaka_health_predictions.inference.util import reduce_dimensionality
     label = 'new_onset_medical_complication'
 
     detn = self.read_detn(label)
@@ -2507,7 +2507,7 @@ def ag_model_load_suffix(label, frac, detn, suffix):
 
     os.chdir("/content/drive/My Drive/[PBA] Code")
 
-    from packages.inference.run.util import AutogluonWrapper
+    from taimaka_health_predictions.inference.util import AutogluonWrapper
 
     os.chdir("/content")
     MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"

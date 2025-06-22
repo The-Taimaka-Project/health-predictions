@@ -1,6 +1,6 @@
 # !git clone -b brian-etl-code https://github.com/The-Taimaka-Project/health-predictions.git
 
-# %cd health-predictions/packages/inference/run
+# %cd health-predictions/taimaka_health_predictions/inference
 
 from taimaka_health_predictions.inference import util
 import unittest
