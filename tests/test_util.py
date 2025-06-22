@@ -2,7 +2,7 @@
 
 # %cd health-predictions/packages/inference/run
 
-from packages.inference.run import util
+from taimaka_health_predictions.inference import util
 import unittest
 from unittest.mock import MagicMock
 import numpy as np
