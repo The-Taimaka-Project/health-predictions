@@ -3,3 +3,4 @@ autogluon.tabular
 pytest
 numpy
 pandas
+boto3

@@ -2,6 +2,8 @@
 Just testing that a DO Function can load an Autogluon model from DO Spaces.
 """
 
+import argparse
+
 from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
 from taimaka_health_predictions.utils.globals import logger
 
@@ -11,7 +13,13 @@ MODEL_PATH = (
 )
 
 
-def main(args):
+def main():
+    parser = argparse.ArgumentParser(
+        description="Inference function for Taimaka Health Predictions."
+    )
+    parser.add_argument("--name", type=str, default="stranger", help="Name of the person to greet.")
+    args = vars(parser.parse_args())
+
     try:
         name = args.get("name", "stranger")
         logger.info("Starting inference function.")

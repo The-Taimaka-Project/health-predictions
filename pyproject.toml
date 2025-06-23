@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taimaka-health-predictions"
+version = "0.1.0"
+requires-python = ">=3.8"
+readme = "README.md"
+authors = [
+  {name = "Brian Chaplin", email = "brian.chaplin@gmail.com"},
+  {name = "Brianna Eales", email = "brianna@taimaka.org"},
+  {name = "Hunter Merrill", email = "hmerrill12@gmail.com"},
+]
+maintainers = [
+  {name = "Brian Chaplin", email = "brian.chaplin@gmail.com"},
+  {name = "Brianna Eales", email = "brianna@taimaka.org"},
+  {name = "Hunter Merrill", email = "hmerrill12@gmail.com"},
+]
+dynamic = ["dependencies"]
+
+[project.scripts]
+infer = "taimaka_health_predictions.inference.run:main"
+
+[tool.setuptools.packages.find]
+exclude = ["to_archive"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

@@ -49,7 +49,7 @@ import tarfile
 from io import BytesIO, StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import boto3
 import pandas as pd
@@ -300,6 +300,9 @@ class DigitalOceanStorage:
         # create local directory if not provided
         if local_path is None:
             local_path = "model"
+
+        # extract path from the full path and remove leading slash
+        path = path.split(bucket)[-1][1:]
 
         # download the tar file from DigitalOcean Spaces
         with TemporaryDirectory() as tempdir:
