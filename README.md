@@ -32,9 +32,11 @@ ssh username@taimaka-internal.org
 This repo is cloned to the server in the directory `/srv/projects/health-predictions`. Any time this source code is updated, simply SSH into the server, navigate to that directory, and run the following:
 
 ```bash
-git checkout main     # ensure you're on the main branch
-git pull origin main  # pull in latest updates
-pip install .         # install the package and CLI tool
+git checkout main           # ensure you're on the main branch
+git pull origin main        # pull in latest updates
+python3.12 -m venv .venv    # create a virtual environment
+. .venv/bin/activate        # activate the virtual environment
+pip install .               # install the package and CLI tool
 ```
 
 Now a command line tool called `infer` is available, and running it will run the full ETL+inference pipeline.
@@ -49,7 +51,7 @@ Hunter set the schedule by running `crontab -e` to open the scheduling file, and
 0 0 * * * source /srv/projects/.do_space_creds && echo "testing"
 ```
 
-When the inference pipeline is ready, `echo "testing"` will be replaced by `infer`.
+When the inference pipeline is ready, `echo "testing"` will be replaced by `. .venv/bin/activate && infer`.
 
 ## Next Steps
 
