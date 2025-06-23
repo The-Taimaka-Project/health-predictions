@@ -35,7 +35,10 @@ This repo is cloned to the server in the directory `/srv/projects/health-predict
 cd /srv/projects/health-predictions  # navigate to the directory
 git checkout main                    # ensure you're on the main branch
 git pull origin main                 # pull in latest updates
-python3.12 -m venv .venv             # create a virtual environment
+
+# create a virtual environment if it doesn't exist already.
+[ -d ".venv" ] && echo "env exists." || python3.12 -m venv .venv
+
 . .venv/bin/activate                 # activate the virtual environment
 pip install .                        # install the package and CLI tool
 ```
