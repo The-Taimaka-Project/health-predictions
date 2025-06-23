@@ -2,8 +2,8 @@
 Just testing that a DO Function can load an Autogluon model from DO Spaces.
 """
 
-from digitalocean import DigitalOceanStorage
-from globals import logger
+from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+from taimaka_health_predictions.utils.globals import logger
 
 MODEL_PATH = (
     "https://taimaka-health-predictions-storage.lon1.digitaloceanspaces.com/"

@@ -56,7 +56,7 @@ import pandas as pd
 from autogluon.tabular import TabularPredictor
 
 # Importing the default URL from globals.py
-from packages.inference.run.globals import DO_SPACE_URL
+from taimaka_health_predictions.utils.globals import DO_SPACE_URL
 
 
 class DigitalOceanStorage:
