@@ -48,7 +48,7 @@ class DetnReaderWriter:
     return detn      
  
 
-  def read_new_onset_medical_complication(self):
+  def read_new_onset_medical_complication(self) -> tuple[pd.DataFrame, str]:
 
     """Reads and preprocesses the dataframe for 'new_onset_medical_complication'.
 
@@ -95,6 +95,63 @@ class DetnReaderWriter:
     detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
 
     return detn,label
+
+  def read_status_dead(self) -> tuple[pd.DataFrame, str]:
+    """Reads and preprocesses the dataframe for 'status_dead'.
+
+    This function performs the following steps:
+    1. Reads the pickle file for the 'status_dead' label using `self.read_detn`.
+    2. Fills missing 'wk1_calc_los' values with 0.
+    3. Reduces the dimensionality of related columns by creating Z-scores
+       and dropping the original columns for various feature groups
+       (household demographics, respiratory/temperature, MUAC/WFH, MUAC trend,
+       WFA/HFA trend, complications, seasonality, WFH trend).
+    4. Reads 'admit_current.pkl' from DigitalOcean storage.
+    5. Merges the 'detn' dataframe with 'admit_current' based on 'pid',
+       keeping only matching records.
+    6. Creates a 'final_date' column which is the maximum of 'status_date'
+       and 'wk1_calcdate_weekly'.
+    7. Fills any remaining NaN values in 'final_date' with today's date.
+    8. Converts the 'final_date' column to datetime objects.
+    9. Calculates the 'duration_days' as the difference in days between
+       'final_date' and 'calcdate'.
+
+    Returns:
+      A tuple containing:
+        - detn: The preprocessed pandas DataFrame.
+        - label: The string 'status_dead'.
+    """
+    from taimaka_health_predictions.inference.util import reduce_dimensionality
+    from taimaka_health_predictions.utils.globals import ETL_DIR
+    import datetime
+    import pandas as pd
+    label = 'status_dead'
+    detn = self.read_detn(label)
+
+    detn['wk1_calc_los'].fillna(0,inplace=True)
+    detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
+    detn = reduce_dimensionality(detn,['resp_rate', 'temperature'],'resp_rate_temperature_z')
+    detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh')
+    detn = reduce_dimensionality(detn,['muac_diff_ratio','muac'],'muac_diff_ratio_z')
+    detn = reduce_dimensionality(detn,['wfa_trend','hfa_trend'],'wfa_hfa_trend_z')
+    detn = reduce_dimensionality(detn,['cat1_complications_weekly','admit_cat1_complications'],'cat1_complications_z')
+    detn = reduce_dimensionality(detn,['wk1_rainy_season_weekly','lean_season_admit'],'season_z')
+    detn = reduce_dimensionality(detn,['wfh_rsquared','wfh_trend'],'wfh_trend_z')
+
+    # add survival data
+    admit_current = self.do_storage.read_pickle( ETL_DIR + 'admit_current.pkl')
+    detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
+    # prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
+    detn['final_date'] = detn[['status_date', 'wk1_calcdate_weekly']].max(axis=1)
+
+    # Fill NaN (active patients w/o a visit) values in 'final_date' with today's date
+    detn['final_date'] = detn['final_date'].fillna(datetime.date.today())
+    detn['final_date'] = pd.to_datetime(detn['final_date'])
+    detn['duration_days'] = detn['final_date'] - detn['calcdate']
+    detn['duration_days'] = detn['duration_days'].dt.days
+ 
+    return detn,label
+
 
 def make_populated_column(detn, variable):
     detn[f"{variable}_populated"] = detn[variable].notnull().astype(int)
