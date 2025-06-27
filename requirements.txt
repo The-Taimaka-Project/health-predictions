@@ -5,3 +5,4 @@ numpy
 pandas
 boto3
 shap
+lightgbm
