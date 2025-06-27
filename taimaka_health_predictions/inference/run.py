@@ -24,6 +24,10 @@ def run_inference():
     input_data = storage.read_pickle(DATA_PATH)
     logger.info("Data successfully loaded.")
 
+    # just testing for now- missing predictors:
+    input_data["household_adults_slept_living_children_z"] = 0.0
+    input_data["muac_diff_ratio_z"] = 0.0
+
     predictions = predictor.predict_proba(input_data[predictor.features()])
     logger.info("Predictions successfully made.")
 
