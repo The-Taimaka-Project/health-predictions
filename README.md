@@ -52,10 +52,8 @@ Now a command line tool called `infer` is available, and running it will run the
 Hunter set the schedule by running `crontab -e` to open the scheduling file, and then pasting the following in the editor:
 
 ```bash
-0 0 * * * . /srv/projects/.do_space_creds && echo "testing"
+0 0 * * * . /srv/projects/.do_space_creds && . /srv/projects/.venv/bin/activate && infer
 ```
-
-When the inference pipeline is ready, `echo "testing"` will be replaced by `. .venv/bin/activate && infer`.
 
 ## Next Steps
 
