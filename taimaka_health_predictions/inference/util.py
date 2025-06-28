@@ -613,6 +613,13 @@ def reduce_dimensionality(detn, columns_for_reduction, reduced_column_name):
 
     # Select the columns for dimensionality reduction
     df_nonnull = detn[columns_for_reduction].dropna()
+
+    # Replace infinite values with NaN
+    df_nonnull.replace([float('inf'), float('-inf')], pd.NA, inplace=True)
+
+    # Drop rows with NaN after replacing infinities
+    df_nonnull = df_nonnull.dropna()
+
     # Create a StandardScaler object
     scaler = StandardScaler()
     scaler.fit(df_nonnull)
