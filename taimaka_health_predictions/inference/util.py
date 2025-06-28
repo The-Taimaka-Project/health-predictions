@@ -171,11 +171,6 @@ class DetnReaderWriter:
     detn = self.read_detn(label)
     label = 'nonresponse'
 
-    detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
-    detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh')
-    detn = reduce_dimensionality(detn,['muac_diff_ratio','muac','muac_diff_ratio_rate'],'muac_diff_ratio_rate_z')
-    detn = reduce_dimensionality(detn,['duration_days','wk1_calc_los'],'duration_z')
-
     admit_current = self.do_storage.read_pickle( ETL_DIR + 'admit_current.pkl')
     detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
     # prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
@@ -186,6 +181,11 @@ class DetnReaderWriter:
     detn['final_date'] = pd.to_datetime(detn['final_date'])
     detn['duration_days'] = detn['final_date'] - detn['calcdate']
     detn['duration_days'] = detn['duration_days'].dt.days
+
+    detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
+    detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh')
+    detn = reduce_dimensionality(detn,['muac_diff_ratio','muac','muac_diff_ratio_rate'],'muac_diff_ratio_rate_z')
+    detn = reduce_dimensionality(detn,['duration_days','wk1_calc_los'],'duration_z')
 
     return detn, label
 
