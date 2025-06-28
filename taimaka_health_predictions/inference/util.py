@@ -169,7 +169,6 @@ class DetnReaderWriter:
     import pandas as pd
     label = 'nonresponse'
     detn = self.read_detn(label)
-    label = 'nonresponse'
 
     admit_current = self.do_storage.read_pickle( ETL_DIR + 'admit_current.pkl')
     detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
@@ -189,7 +188,27 @@ class DetnReaderWriter:
 
     return detn, label
 
+  def read_muac_loss_2_weeks_consecutive(self) -> tuple[pd.DataFrame, str]:
+    """Reads and processes data for the 'muac_loss_2_weeks_consecutive' label.
 
+    This function reads the determination data for the specified label,
+    then applies dimensionality reduction to create new composite features
+    from related columns.
+
+    Returns:
+      tuple[pd.DataFrame, str]: A tuple containing:
+          - pd.DataFrame: The processed DataFrame with reduced dimensionality.
+          - str: The label string 'muac_loss_2_weeks_consecutive'.
+    """
+    from taimaka_health_predictions.inference.util import reduce_dimensionality
+    label = 'muac_loss_2_weeks_consecutive'
+    detn = self.read_detn(label)
+
+    detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
+    detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh_z')
+    detn = reduce_dimensionality(detn,['wk1_muac_diff_rate','muac_diff_ratio_rate','muac_diff_ratio'],'muac_diff_rate_ratio_z')
+
+    return detn, label
 
 def make_populated_column(detn, variable):
     detn[f"{variable}_populated"] = detn[variable].notnull().astype(int)
