@@ -152,6 +152,44 @@ class DetnReaderWriter:
  
     return detn,label
 
+  def read_nonresponse(self) -> tuple[pd.DataFrame, str]:
+    """Reads and preprocesses data to predict non-response.
+
+    Loads patient data, reduces dimensionality of certain feature groups, merges with
+    current admission status, calculates a final date for analysis, and computes
+    duration based on this final date.
+
+    Returns:
+        tuple[pd.DataFrame, str]: A tuple containing the preprocessed DataFrame
+        and the target label string ('nonresponse').
+    """
+    from taimaka_health_predictions.inference.util import reduce_dimensionality
+    from taimaka_health_predictions.utils.globals import ETL_DIR
+    import datetime
+    import pandas as pd
+    label = 'status_dead'
+    detn = self.read_detn(label)
+    label = 'nonresponse'
+
+    detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
+    detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh')
+    detn = reduce_dimensionality(detn,['muac_diff_ratio','muac','muac_diff_ratio_rate'],'muac_diff_ratio_rate_z')
+    detn = reduce_dimensionality(detn,['duration_days','wk1_calc_los'],'duration_z')
+
+    admit_current = self.do_storage.read_pickle( ETL_DIR + 'admit_current.pkl')
+    detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
+    # prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
+    detn['final_date'] = detn[['status_date', 'wk1_calcdate_weekly']].max(axis=1)
+
+    # Fill NaN (active patients w/o a visit) values in 'final_date' with today's date
+    detn['final_date'] = detn['final_date'].fillna(datetime.date.today())
+    detn['final_date'] = pd.to_datetime(detn['final_date'])
+    detn['duration_days'] = detn['final_date'] - detn['calcdate']
+    detn['duration_days'] = detn['duration_days'].dt.days
+
+    return detn, label
+
+
 
 def make_populated_column(detn, variable):
     detn[f"{variable}_populated"] = detn[variable].notnull().astype(int)
