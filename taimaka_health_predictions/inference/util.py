@@ -167,7 +167,7 @@ class DetnReaderWriter:
     from taimaka_health_predictions.utils.globals import ETL_DIR
     import datetime
     import pandas as pd
-    label = 'status_dead'
+    label = 'nonresponse'
     detn = self.read_detn(label)
     label = 'nonresponse'
 
