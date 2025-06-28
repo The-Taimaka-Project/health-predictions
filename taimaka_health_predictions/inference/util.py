@@ -210,6 +210,26 @@ class DetnReaderWriter:
 
     return detn, label
 
+  def read_detn_weight_loss_ever(self) -> tuple[pd.DataFrame, str]:
+    """Reads and processes data for the 'detn_weight_loss_ever' label.
+
+    This function reads the determination data for the specified label,
+    then applies dimensionality reduction to create new composite features
+    from related columns.
+
+    Returns:
+      tuple[pd.DataFrame, str]: A tuple containing:
+          - pd.DataFrame: The processed DataFrame with reduced dimensionality.
+          - str: The label string 'detn_weight_loss_ever'.
+    """
+    from taimaka_health_predictions.inference.util import reduce_dimensionality
+    label = 'detn_weight_loss_ever'
+    detn = self.read_detn(label)
+
+    detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
+
+    return detn, label
+
 def make_populated_column(detn, variable):
     detn[f"{variable}_populated"] = detn[variable].notnull().astype(int)
     return detn, f"{variable}_populated"
