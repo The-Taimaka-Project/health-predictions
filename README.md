@@ -40,7 +40,7 @@ git pull origin main                 # pull in latest updates
 [ -d ".venv" ] && echo "env exists." || python3.12 -m venv .venv
 
 . .venv/bin/activate                 # activate the virtual environment
-pip install .                        # install the package and CLI tool
+pip install . -U                     # install the package and CLI tool
 ```
 
 Now a command line tool called `infer` is available, and running it will run the full ETL+inference pipeline.
@@ -52,10 +52,10 @@ Now a command line tool called `infer` is available, and running it will run the
 Hunter set the schedule by running `crontab -e` to open the scheduling file, and then pasting the following in the editor:
 
 ```bash
-0 0 * * * . /srv/projects/.do_space_creds && echo "testing"
+0 0 * * * cd /srv/projects/ && . .do_space_creds && cd health-predictions && . .venv/bin/activate && infer
 ```
 
-When the inference pipeline is ready, `echo "testing"` will be replaced by `. .venv/bin/activate && infer`.
+After each scheduled run, logs are stored in `/var/spool/mail/hmerrill`.
 
 ## Next Steps
 
