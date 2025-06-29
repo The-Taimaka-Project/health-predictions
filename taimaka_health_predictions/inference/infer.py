@@ -20,7 +20,7 @@ run
 to get the dataframes that this notebook depends on
 """
 # model version
-VERSION = 0.1.0
+VERSION = '0.1.0'
 
 # above this percentile, active, label = 0 will have their shap values calculated
 TOP_PCT = 0.50
