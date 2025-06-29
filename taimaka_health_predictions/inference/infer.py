@@ -25,7 +25,7 @@ from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_O
 
 
 # TODO change to digital ocean
-MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
+# MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
 
 # above this percentile, active, label = 0 will have their shap values calculated
 TOP_PCT = 0.50
@@ -57,7 +57,10 @@ import pickle
 import os
 import re
 import json
-
+from taimaka_health_predictions.inference.util import (
+    DetnReaderWriter,
+    split_detn_new_onset_medical_complication
+)
 #import shap
 #import import_ipynb
 from warnings import simplefilter,filterwarnings
@@ -85,10 +88,10 @@ from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 from autogluon.tabular import TabularDataset, TabularPredictor
 
 # TODO replace with read data from csv and datatypes dict from json or Postgres SQL 
-with open(dir + 'admit_weekly.pkl', 'rb') as f:
-  admit_weekly = pickle.load(f)
-with open(dir + 'admit_current.pkl', 'rb') as f:
-  admit_current = pickle.load(f)
+# with open(dir + 'admit_weekly.pkl', 'rb') as f:
+#  admit_weekly = pickle.load(f)
+# with open(dir + 'admit_current.pkl', 'rb') as f:
+#   admit_current = pickle.load(f)
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=FutureWarning)
