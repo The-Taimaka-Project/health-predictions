@@ -13,5 +13,7 @@ DO_SPACE_URL = "https://taimaka-health-predictions-storage.lon1.digitaloceanspac
 DO_SPACE_PREFIX = "inference-workflow"
 DO_DIRECTORY = f"{DO_SPACE_URL}/{DO_SPACE_PREFIX}"
 
-ETL_DIR = "etl/"
-MODEL_DIR = "model/"
+ETL_DIR = 'etl/'
+MODEL_DIR = 'model/'
+ADMIT_ONLY = '1'
+NOT_ADMIT_ONLY = 'not1'
