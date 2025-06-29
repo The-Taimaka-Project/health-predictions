@@ -66,32 +66,19 @@ from taimaka_health_predictions.inference.util import (
 from warnings import simplefilter,filterwarnings
 
 from lifelines import WeibullAFTFitter
-
-detn_reader = DetnReaderWriter()
-
-#from google.colab import drive
-#drive.mount('/content/drive')
-
-
-
-
-
-# prompt: read google shared drive file
-
-
-dir = "/content/drive/My Drive/[PBA] Data/analysis/"
-
-# use auto ML (autogluon) to predict the 5 deterioration events
-#!pip install autogluon --quiet
-
 from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 from autogluon.tabular import TabularDataset, TabularPredictor
 
-# TODO replace with read data from csv and datatypes dict from json or Postgres SQL 
-# with open(dir + 'admit_weekly.pkl', 'rb') as f:
-#  admit_weekly = pickle.load(f)
-# with open(dir + 'admit_current.pkl', 'rb') as f:
-#   admit_current = pickle.load(f)
+detn_reader = DetnReaderWriter()
+
+# run secrets first to set the environment variables for your credentials
+do_storage = DigitalOceanStorage()
+
+
+
+# use auto ML (autogluon) to predict the 5 deterioration events
+
+admit_current = do_storage.read_pickle( ETL_DIR + 'admit_current.pkl')
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=FutureWarning)
