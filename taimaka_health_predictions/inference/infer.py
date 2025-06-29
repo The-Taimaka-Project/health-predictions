@@ -20,6 +20,10 @@ run
 to get the dataframes that this notebook depends on
 """
 
+from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_ONLY, NOT_ADMIT_ONLY, logger
+
+
 # TODO change to digital ocean
 MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
 
@@ -31,7 +35,7 @@ EXPORT_SHAP_WATERFALL = True
 
 #!pip install shap --quiet
 # survival analysis
-!pip install lifelines --quiet
+#!pip install lifelines --quiet
 
 # Commented out IPython magic to ensure Python compatibility.
 #!git clone -b brian-etl-code https://github.com/The-Taimaka-Project/health-predictions.git
