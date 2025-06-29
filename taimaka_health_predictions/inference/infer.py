@@ -27,14 +27,14 @@ MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
 TOP_PCT = 0.50
 EXPORT_SHAP_WATERFALL = True
 
-!pip install import_ipynb --quiet
+#!pip install import_ipynb --quiet
 
 #!pip install shap --quiet
 # survival analysis
 !pip install lifelines --quiet
 
 # Commented out IPython magic to ensure Python compatibility.
-!git clone -b brian-etl-code https://github.com/The-Taimaka-Project/health-predictions.git
+#!git clone -b brian-etl-code https://github.com/The-Taimaka-Project/health-predictions.git
 #!git clone https://github.com/The-Taimaka-Project/health-predictions.git
 
 # Change directory to the repository
@@ -55,19 +55,16 @@ import re
 import json
 
 #import shap
-import import_ipynb
+#import import_ipynb
 from warnings import simplefilter,filterwarnings
 
 from lifelines import WeibullAFTFitter
 
+detn_reader = DetnReaderWriter()
 
+#from google.colab import drive
+#drive.mount('/content/drive')
 
-from google.colab import drive
-drive.mount('/content/drive')
-
-
-
-from util import reduce_dimensionality
 
 
 
@@ -78,32 +75,10 @@ from util import reduce_dimensionality
 dir = "/content/drive/My Drive/[PBA] Data/analysis/"
 
 # use auto ML (autogluon) to predict the 5 deterioration events
-!pip install autogluon --quiet
+#!pip install autogluon --quiet
 
 from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 from autogluon.tabular import TabularDataset, TabularPredictor
-
-import logging
-# Create a logger# Create a logger
-logger = logging.getLogger('my_logger')
-logger.setLevel(logging.DEBUG) # Set the minimum logging level
-
-# Create a handler to output logs to the console
-console_handler = logging.StreamHandler()
-
-file_handler = logging.FileHandler('my_log.log')
-file_handler.setLevel(logging.INFO) # Set the logging level for the handler
-
-
-# Create a formatter to specify the log message format
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s')
-
-# Add the formatter to the handler
-
-file_handler.setFormatter(formatter)
-
-# Add the handler to the logger
-logger.addHandler(file_handler)
 
 # TODO replace with read data from csv and datatypes dict from json or Postgres SQL 
 with open(dir + 'admit_weekly.pkl', 'rb') as f:
@@ -166,29 +141,15 @@ def read_detn(label):
 New onset medical complication - 'cat1' complication (see vars in raw ODK data with cat1_ prefix)
 """
 
-# prompt: use pickle to read deterioration dataframe
-label = 'new_onset_medical_complication'
 
-detn = read_detn(label)
-
+detn, label = detn_reader.read_new_onset_medical_complication()
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
-
-detn = detn[detn['weekly_last_admit'].notnull()].copy()
-
-detn.drop(columns='c_admission_other',inplace=True) # causes duplicate column if get_dummies invoked
-detn.drop(columns='phone_owner_other',inplace=True) # messes up get_dummies
-detn.drop(columns='calc_dayssincevita',inplace=True) # incorrectly calculated for non-active, messes up detn_wk1_only models
 
 y_cat1_cols = [col for col in detn.columns if col.startswith('y_cat1')]
 detn.drop(columns=y_cat1_cols,inplace=True) # only looking at label new_onset_medical_complication, not the actual categories
 
 logger.debug(detn.shape)
-
-#detn['glbsite'] = detn['glbsite'].str.lower()
-#detn['wk1_autosite'] = detn['wk1_autosite'].str.lower()
-detn['wk1_calc_los'] = round(detn['wk1_calc_los'],0)
-detn['weekly_last_muac'] = round(detn['weekly_last_muac'],1)
 
 detn['wk1_calc_los'].fillna(0,inplace=True)
 LOS_CUTOFF = 12
@@ -197,9 +158,6 @@ logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()},{detn.shape}'
 
 
 detn = detn[(detn['weekly_last_muac']< MUAC_CUTOFF) & (detn['wk1_calc_los']< LOS_CUTOFF) ].copy()
-
-detn = reduce_dimensionality(detn,['muac_diff_ratio','muac'],'muac_diff_ratio_z')
-detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
 
 logger.debug(f'{detn[label].sum()},{detn[label].mean()},{detn.shape}')
 
@@ -350,11 +308,8 @@ pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 
 # poor weight gain
 
-label = 'detn_weight_loss_ever'
 
-#with open(dir + f'{label}.pkl', 'rb') as f:
-#  detn = pickle.load(f)
-detn = read_detn(label)
+detn, label = detn_reader.read_detn_weight_loss_ever()
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 detn['wk1_calc_los'].fillna(0,inplace=True)
@@ -364,10 +319,6 @@ MUAC_CUTOFF = 12.7
 
 detn = detn[((detn['wk1_b_discharged']==0) & (detn['weekly_last_muac']< MUAC_CUTOFF) & (detn['wk1_calc_los']< LOS_CUTOFF)) ].copy()
 
-
-logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
-detn = reduce_dimensionality(detn,['resp_rate', 'temperature'],'resp_rate_temperature')
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
@@ -457,11 +408,7 @@ pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 logger.debug(pid_probabilities.shape)
 
 # muac loss 2 weeks consecutive
-
-label = 'muac_loss_2_weeks_consecutive'
-
-detn = read_detn(label)
-
+detn, label = detn_reader.read_muac_loss_2_weeks_consecutive()
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 detn['wk1_calc_los'].fillna(0,inplace=True)
@@ -475,16 +422,7 @@ detn = detn[((detn['wk1_b_discharged']==0) & (detn['weekly_last_muac']< MUAC_CUT
 
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
 
-
-
-detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh_z')
-
-detn = reduce_dimensionality(detn,['wk1_muac_diff_rate','muac_diff_ratio_rate','muac_diff_ratio'],'muac_diff_rate_ratio_z')
-
-
-logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
 # run inference
 y_pred_proba_all,explainer,ag_features = run_ag_model(label,detn,'')
@@ -569,26 +507,11 @@ df = pd.merge(censored_subjects[['pid','wfh_trend',duration_days_col]],y_median,
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 logger.debug(pid_probabilities.shape)
 
-label = 'nonresponse'
 
-detn = read_detn(label)
-
+detn, label = detn_reader.read_nonresponse()
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
-# prompt: create column in detn called final_date which is status_date or wk1_calcdate_weekly whichever is greater
-detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
-logger.debug(f'{detn[label].sum()},{detn.shape}')
-
-
-# Create 'final_date' column, choosing the later date between 'status_date' and 'wk1_calcdate_weekly'
-detn['final_date'] = detn[['status_date', 'wk1_calcdate_weekly']].max(axis=1)
-
-# Fill NaN (active patients w/o a visit) values in 'final_date' with today's date
-detn['final_date'] = detn['final_date'].fillna(datetime.date.today())
-detn['final_date'] = pd.to_datetime(detn['final_date'])
-detn['duration_days'] = detn['final_date'] - detn['calcdate']
-detn['duration_days'] = detn['duration_days'].dt.days
 
 # prompt: only keep detn rows where duration between label==1 min(duration_days) and max(duration_days)
 min_duration = detn.groupby(label)['duration_days'].min()[1]
@@ -602,18 +525,6 @@ detn_filtered = detn[
 detn = detn_filtered.copy()
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
-detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
-
-detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh')
-
-detn['muac_diff_ratio'] = -detn['muac_diff_ratio']
-detn['muac_diff_ratio_rate'] = -detn['muac_diff_ratio_rate']
-
-
-detn = reduce_dimensionality(detn,['muac_diff_ratio','muac','muac_diff_ratio_rate'],'muac_diff_ratio_rate_z')
-detn = reduce_dimensionality(detn,['duration_days','wk1_calc_los'],'duration_z')
-#detn.drop(columns=['duration_days','wk1_calc_los'],inplace=True)
-logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
 y_pred_proba_all,explainer,ag_features = run_ag_model(label,detn,'')
 
@@ -628,32 +539,10 @@ if EXPORT_SHAP_WATERFALL:
   pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
-label = 'status_dead'
-
-detn = read_detn(label)
+detn, label = detn_reader.read_status_dead()
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
-# TODO move this to etl_deterioration
-detn = pd.merge(detn, admit_current[['pid','status','status_date']], on='pid', how='inner')
-logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-# Create 'final_date' column, choosing the later date between 'status_date' and 'wk1_calcdate_weekly'
-detn['final_date'] = detn[['status_date', 'wk1_calcdate_weekly']].max(axis=1)
-
-# Fill NaN (active patients w/o a visit) values in 'final_date' with today's date
-detn['final_date'] = detn['final_date'].fillna(datetime.date.today())
-detn['final_date'] = pd.to_datetime(detn['final_date'])
-detn['duration_days'] = detn['final_date'] - detn['calcdate']
-detn['duration_days'] = detn['duration_days'].dt.days
-
-label_date = f'{label}_date'
-# for the majority that are missing label_date
-detn['duration_days'] = detn['calcdate'].max() - detn['calcdate']
-
-# overwrite only for those with non-null label_date
-detn.loc[detn[label_date].notnull(), 'duration_days'] = detn.loc[detn[label_date].notnull(), label_date] - detn.loc[detn[label_date].notnull(), 'calcdate']
-
-detn['duration_days'] = detn['duration_days'].dt.days
 
 detn['wk1_calc_los'].fillna(0,inplace=True)
 
@@ -668,19 +557,6 @@ detn = detn[(((detn['weekly_last_muac'].isnull()) & (detn['wk1_calc_los'] < NULL
 
 logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
 
-detn = reduce_dimensionality(detn,['household_adults','household_slept','living_children'],'household_adults_slept_living_children_z')
-
-detn = reduce_dimensionality(detn,['resp_rate', 'temperature'],'resp_rate_temperature_z')
-detn = reduce_dimensionality(detn,['weekly_avg_muac','weekly_last_wfh',],'muac_wfh')
-
-detn['muac_diff_ratio'] = -detn['muac_diff_ratio']
-
-detn = reduce_dimensionality(detn,['muac_diff_ratio','muac'],'muac_diff_ratio_z')
-logger.debug(f'{detn.shape,detn[label].sum()},{detn[label].mean()}')
-detn = reduce_dimensionality(detn,['wfa_trend','hfa_trend'],'wfa_hfa_trend_z')
-detn = reduce_dimensionality(detn,['cat1_complications_weekly','admit_cat1_complications'],'cat1_complications_z')
-detn = reduce_dimensionality(detn,['wk1_rainy_season_weekly','lean_season_admit'],'season_z')
-detn = reduce_dimensionality(detn,['wfh_rsquared','wfh_trend'],'wfh_trend_z')
 
 # prompt: clip lower boundary of detn['duration_days'] to 0
 
