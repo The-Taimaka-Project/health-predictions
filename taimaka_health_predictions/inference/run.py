@@ -4,6 +4,7 @@ Just testing that a DO Function can load an Autogluon model from DO Spaces.
 
 import argparse
 
+from taimaka_health_predictions.inference.util import DetnReaderWriter
 from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
 from taimaka_health_predictions.utils.globals import DO_SPACE_URL, logger
 
@@ -21,12 +22,9 @@ def run_inference():
     logger.info("Model successfully loaded.")
 
     # load inference data and make predictions
-    input_data = storage.read_pickle(DATA_PATH)
+    detn_reader = DetnReaderWriter()
+    input_data, _ = detn_reader.read_new_onset_medical_complication()
     logger.info("Data successfully loaded.")
-
-    # just testing for now- missing predictors:
-    input_data["household_adults_slept_living_children_z"] = 0.0
-    input_data["muac_diff_ratio_z"] = 0.0
 
     predictions = predictor.predict_proba(input_data[predictor.features()])
     logger.info("Predictions successfully made.")

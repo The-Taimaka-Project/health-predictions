@@ -52,7 +52,7 @@ Now a command line tool called `infer` is available, and running it will run the
 Hunter set the schedule by running `crontab -e` to open the scheduling file, and then pasting the following in the editor:
 
 ```bash
-0 0 * * * . /srv/projects/.do_space_creds && . /srv/projects/.venv/bin/activate && infer
+0 0 * * * cd /srv/projects/ && . .do_space_creds && cd health-predictions && . .venv/bin/activate && infer
 ```
 
 After each scheduled run, logs are stored in `/var/spool/mail/hmerrill`.
