@@ -19,11 +19,8 @@ run
 
 to get the dataframes that this notebook depends on
 """
-
-from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
-from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_ONLY, NOT_ADMIT_ONLY, logger
-
-
+# model version
+VERSION = 0.1.0
 
 # above this percentile, active, label = 0 will have their shap values calculated
 TOP_PCT = 0.50
@@ -44,6 +41,9 @@ import pickle
 import os
 import re
 import json
+from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_ONLY, NOT_ADMIT_ONLY, logger
+
 from taimaka_health_predictions.inference.util import (
     DetnReaderWriter,
     split_detn_new_onset_medical_complication
@@ -155,9 +155,7 @@ def run_ag_model(label,detn,suffix):
   import shap
   from taimaka_health_predictions.utils.globals import MODEL_DIR
 
-
-  model_path = f"{MODEL_DIR}/{label}{suffix}/"
-  predictor = TabularPredictor.load(model_path,require_py_version_match=False,require_version_match=False)
+  predictor, metadata = do_storage.read_autogluon_tarball(path=f"{MODEL_DIR}{label}{suffix}/{VERSION}/model.tar.gz")  
 
   ag_features = predictor.features()
   logger.debug(f'ag features:, {len(ag_features)}, {ag_features}')
