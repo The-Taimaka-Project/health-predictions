@@ -24,29 +24,16 @@ from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
 from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_ONLY, NOT_ADMIT_ONLY, logger
 
 
-# TODO change to digital ocean
-# MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
 
 # above this percentile, active, label = 0 will have their shap values calculated
 TOP_PCT = 0.50
 EXPORT_SHAP_WATERFALL = True
 
-#!pip install import_ipynb --quiet
-
-#!pip install shap --quiet
-# survival analysis
-#!pip install lifelines --quiet
-
 # Commented out IPython magic to ensure Python compatibility.
-#!git clone -b brian-etl-code https://github.com/The-Taimaka-Project/health-predictions.git
-#!git clone https://github.com/The-Taimaka-Project/health-predictions.git
 
 # Change directory to the repository
-# %cd health-predictions/taimaka_health_predictions/inference
+# %cd health-predictions/taimaka_health_predictions
 # %pwd
-#TODO move util here
-
-# %cd /content
 
 import pandas as pd
 
@@ -62,7 +49,7 @@ from taimaka_health_predictions.inference.util import (
     split_detn_new_onset_medical_complication
 )
 #import shap
-#import import_ipynb
+
 from warnings import simplefilter,filterwarnings
 
 from lifelines import WeibullAFTFitter
@@ -166,9 +153,10 @@ def run_ag_model(label,detn,suffix):
   from autogluon.tabular import TabularDataset, TabularPredictor
   from util import AutogluonWrapper
   import shap
+  from taimaka_health_predictions.utils.globals import MODEL_DIR
 
 
-  model_path = f"{MODEL_PATH}/{label}{suffix}/"
+  model_path = f"{MODEL_DIR}/{label}{suffix}/"
   predictor = TabularPredictor.load(model_path,require_py_version_match=False,require_version_match=False)
 
   ag_features = predictor.features()
@@ -191,8 +179,8 @@ detn_admit_only,_,_,_ = split_detn_new_onset_medical_complication(detn,label)
 pid_not_in_admit = detn[~detn['pid'].isin(detn_admit_only['pid'])]['pid']
 detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 
-y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,'1')
-y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,'not1')
+y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
+y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
 
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
