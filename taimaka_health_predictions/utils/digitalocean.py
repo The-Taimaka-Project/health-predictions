@@ -301,9 +301,6 @@ class DigitalOceanStorage:
         if local_path is None:
             local_path = "model"
 
-        # extract path from the full path and remove leading slash
-        path = path.split(bucket)[-1][1:]
-
         # download the tar file from DigitalOcean Spaces
         with TemporaryDirectory() as tempdir:
             filename = str(Path(tempdir) / "model.tar.gz")
