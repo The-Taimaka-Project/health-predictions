@@ -24,7 +24,7 @@ VERSION = '0.1.0'
 
 # above this percentile, active, label = 0 will have their shap values calculated
 TOP_PCT = 0.50
-EXPORT_SHAP_WATERFALL = True
+EXPORT_SHAP_WATERFALL = False
 
 # Commented out IPython magic to ensure Python compatibility.
 
