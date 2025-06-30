@@ -7,8 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1zv7p1ycuoeHZ3EG_rUtUMEq0GwhZXF0i
 
 # summary
-
-visualize model importance features and specific patients' model predictions and why.  Plot anthropometrics by visit and plot cat2/cat1 events on the timeline.
+run inference on the chance of models, time until event models, export waterfall shap waterfall chart values for the AG chance of models for explanability
 
 # setup
 
@@ -179,12 +178,6 @@ detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 
 y_pred_proba_all1,explainer1a,ag_features1a = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
 y_pred_proba_all2,explainer2a,ag_features2a = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
-
-print('ag_features1',ag_features1a)
-print('ag_features2',ag_features2a)
-print('detn_admit_only',detn_admit_only.shape)
-print('detn_filtered',detn_filtered.shape)
-
 
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
