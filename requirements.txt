@@ -6,3 +6,7 @@ pandas
 boto3
 shap
 lightgbm
+statsmodels
+scikit-learn
+scipy
+tqdm
