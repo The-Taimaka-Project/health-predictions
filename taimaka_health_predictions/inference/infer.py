@@ -19,30 +19,18 @@ run
 
 to get the dataframes that this notebook depends on
 """
-
-# TODO change to digital ocean
-MODEL_PATH = "/content/drive/My Drive/[PBA] Code/model"
+# model version
+VERSION = '0.1.0'
 
 # above this percentile, active, label = 0 will have their shap values calculated
 TOP_PCT = 0.50
 EXPORT_SHAP_WATERFALL = True
 
-#!pip install import_ipynb --quiet
-
-#!pip install shap --quiet
-# survival analysis
-!pip install lifelines --quiet
-
 # Commented out IPython magic to ensure Python compatibility.
-#!git clone -b brian-etl-code https://github.com/The-Taimaka-Project/health-predictions.git
-#!git clone https://github.com/The-Taimaka-Project/health-predictions.git
 
 # Change directory to the repository
-# %cd health-predictions/taimaka_health_predictions/inference
+# %cd health-predictions/taimaka_health_predictions
 # %pwd
-#TODO move util here
-
-# %cd /content
 
 import pandas as pd
 
@@ -53,38 +41,31 @@ import pickle
 import os
 import re
 import json
+from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_ONLY, NOT_ADMIT_ONLY, logger
 
+from taimaka_health_predictions.inference.util import (
+    DetnReaderWriter,
+    split_detn_new_onset_medical_complication
+)
 #import shap
-#import import_ipynb
+
 from warnings import simplefilter,filterwarnings
 
 from lifelines import WeibullAFTFitter
-
-detn_reader = DetnReaderWriter()
-
-#from google.colab import drive
-#drive.mount('/content/drive')
-
-
-
-
-
-# prompt: read google shared drive file
-
-
-dir = "/content/drive/My Drive/[PBA] Data/analysis/"
-
-# use auto ML (autogluon) to predict the 5 deterioration events
-#!pip install autogluon --quiet
-
 from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 from autogluon.tabular import TabularDataset, TabularPredictor
 
-# TODO replace with read data from csv and datatypes dict from json or Postgres SQL 
-with open(dir + 'admit_weekly.pkl', 'rb') as f:
-  admit_weekly = pickle.load(f)
-with open(dir + 'admit_current.pkl', 'rb') as f:
-  admit_current = pickle.load(f)
+detn_reader = DetnReaderWriter()
+
+# run secrets first to set the environment variables for your credentials
+do_storage = DigitalOceanStorage()
+
+
+
+# use auto ML (autogluon) to predict the 5 deterioration events
+
+admit_current = do_storage.read_pickle( ETL_DIR + 'admit_current.pkl')
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=FutureWarning)
@@ -172,10 +153,9 @@ def run_ag_model(label,detn,suffix):
   from autogluon.tabular import TabularDataset, TabularPredictor
   from util import AutogluonWrapper
   import shap
+  from taimaka_health_predictions.utils.globals import MODEL_DIR
 
-
-  model_path = f"{MODEL_PATH}/{label}{suffix}/"
-  predictor = TabularPredictor.load(model_path,require_py_version_match=False,require_version_match=False)
+  predictor, metadata = do_storage.read_autogluon_tarball(path=f"{MODEL_DIR}{label}{suffix}/{VERSION}/model.tar.gz")  
 
   ag_features = predictor.features()
   logger.debug(f'ag features:, {len(ag_features)}, {ag_features}')
@@ -197,8 +177,8 @@ detn_admit_only,_,_,_ = split_detn_new_onset_medical_complication(detn,label)
 pid_not_in_admit = detn[~detn['pid'].isin(detn_admit_only['pid'])]['pid']
 detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 
-y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,'1')
-y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,'not1')
+y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
+y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
 
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
