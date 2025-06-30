@@ -48,7 +48,7 @@ class AnthropometricTrajectories:
     def create_design_matrix(
         self,
         days: np.ndarray | pd.Series,
-        cat_vector: np.ndarray | pd.Series | None,
+        cat_vector: np.ndarray | pd.Series | None = None,
         cat_labels: List[str] | None = None,
     ) -> np.ndarray:
         """
@@ -153,6 +153,8 @@ class AnthropometricTrajectories:
         """
         Forecast the metric for a single patient using the fitted model.
 
+        To-do: add an optional "days" input on which to forecast.
+
         Parameters
         ----------
         df: pd.DataFrame
@@ -212,7 +214,7 @@ class AnthropometricTrajectories:
             days, df[self.cat_col].values if self.cat_col else None, cat_labels=self.cat_labels
         )
 
-        # Get the forecasted mean and standard deviation.
+        # Get the forecasted mean
         forecast_mean = (X_forecast @ self.params["beta"]).squeeze()
 
         # The patient-specific intercept is unknown. Let's estimate it with Bayesian inference.
@@ -235,7 +237,7 @@ class AnthropometricTrajectories:
         forecast_std = np.sqrt(
             v
             + self.params["residual_variance"]
-            * (1 + np.diag(X_grid @ self.params["cov_beta"] @ X_grid.T))
+            + np.diag(X_grid @ self.params["cov_beta"] @ X_grid.T)
         )
         result = {
             "days": forecast_day_grid,
