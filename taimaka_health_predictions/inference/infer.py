@@ -197,7 +197,7 @@ top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratif
 if EXPORT_SHAP_WATERFALL:
   # json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
   json_series2 = export_waterfall_shap_values(explainer2a,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2a)
-  # pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series, json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 # survival
 logger.debug(f'{detn[label].sum()},{detn.shape}')
@@ -570,9 +570,9 @@ logger.debug(pid_probabilities.shape)
 pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'probability_{label}_stratified'].rank(pct=True)
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
+  # json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
   json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2)
-  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series, json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
 # clip for better visualization and so AFT models will work, guaranteeing all durations >0
