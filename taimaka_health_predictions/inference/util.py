@@ -2138,18 +2138,30 @@ def plot_anthros(
     # ax.legend()
     plt.show()
 
-def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,drop_weight: bool = True,drop_height: bool = True,columns_to_keep: set = {}) -> pd.DataFrame:
+import pandas as pd
+def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,drop_weight: bool = True,drop_height: bool = True,columns_to_keep: set = {},columns_to_explicitly_delete: set = {}) -> pd.DataFrame:
   """
-  drop columns that happen as a result of the deterioration, reverse causality
+  Drops columns from a pandas DataFrame based on criteria related to outcome variables
+  and other potentially reverse causal features.
+
+  Args:
+    detn: The input pandas DataFrame.
+    label: The name of the target variable column.
+    drop_muac: If True, drops columns related to MUAC measurements (except specified).
+    drop_weight: If True, drops columns related to weight measurements (except specified).
+    drop_height: If True, drops columns related to height measurements (except specified).
+    columns_to_keep: A set of column names that should *not* be dropped, even if they
+                       match the drop criteria.
+    columns_to_explicit_delete: A set of additional column names to explicitly drop.
+
+    Returns:
+  A pandas DataFrame with specified columns dropped.
   """
-  detn_columns = detn.columns
   columns_to_delete = {col for col in detn.columns if 'interpolated' in col}
   # could be caused by poor (or good) weight gain
   columns_to_delete.update({col for col in detn.columns if 'sachets' in col})
   columns_to_delete.update({col for col in detn.columns if 'receivingitp_filter' in col})
   columns_to_delete.update({col for col in detn.columns if 'discharge' in col})
-
-
   columns_to_delete.update({col for col in detn.columns if 'dose' in col})
   columns_to_delete.update({col for col in detn.columns if 'rationweeks' in col})
   columns_to_delete.update({col for col in detn.columns if 'nv_date' in col})
@@ -2162,7 +2174,7 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   # set to 1 if Actively receiving treatment
   columns_to_delete.update({col for col in detn.columns if 'correct_status' in col})
   # for zero weeks (those w/o wk1) completely determines new onset complication, by def'n
-  
+
   columns_to_delete.update({col for col in detn.columns if 'weekly_row_count' in col})
   columns_to_delete.update({col for col in detn.columns if 'form_version' in col})
   columns_to_delete.update({col for col in detn.columns if 'submitter_id' in col})
@@ -2184,7 +2196,6 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   columns_to_delete.update({col for col in detn.columns if 'picture' in col})
   columns_to_delete.update({col for col in detn.columns if 'canmovevisit' in col})
   columns_to_delete.update({col for col in detn.columns if 'staffmember' in col})
-  #detn.drop(columns=[col for col in detn.columns if 'bednet' in col})
   columns_to_delete.update({col for col in detn.columns if 'receivedsmc' in col})
   columns_to_delete.update({col for col in detn.columns if 'device' in col})
   columns_to_delete.update({col for col in detn.columns if 'lookup_calc' in col})
@@ -2192,7 +2203,6 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   columns_to_delete.update({col for col in detn.columns if 'dose' in col})
   columns_to_delete.update({col for col in detn.columns if 'settlement' in col})
   columns_to_delete.update({col for col in detn.columns if 'calcdate' in col})
-
   columns_to_delete.update({col for col in detn.columns if 'manual_daystonv' in col})
   columns_to_delete.update({col for col in detn.columns if 'resp_rate_2' in col})
   columns_to_delete.update({col for col in detn.columns if 'doneses' in col})
@@ -2245,8 +2255,12 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   columns_to_delete.update(recent_raw_columns)
   columns_to_delete.update(weekly_columns_to_delete)
   columns_to_delete.update(weekly_raw_columns_to_delete)
+  columns_to_delete.update(columns_to_explicitly_delete)
+  #print(len(columns_to_delete))
   columns_to_delete = columns_to_delete - columns_to_keep
-  detn.drop(columns=columns_to_delete.intersection(set(detn.columns)),inplace=True)  
+  #columns_to_delete.remove(columns_to_keep)
+  #print(len(columns_to_delete))
+  detn.drop(columns=columns_to_delete.intersection(set(detn.columns)),inplace=True)
   return detn
 
 

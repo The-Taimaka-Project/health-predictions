@@ -7,8 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1zv7p1ycuoeHZ3EG_rUtUMEq0GwhZXF0i
 
 # summary
-
-visualize model importance features and specific patients' model predictions and why.  Plot anthropometrics by visit and plot cat2/cat1 events on the timeline.
+run inference on the chance of models, time until event models, export waterfall shap waterfall chart values for the AG chance of models for explanability
 
 # setup
 
@@ -177,8 +176,8 @@ detn_admit_only,_,_,_ = split_detn_new_onset_medical_complication(detn,label)
 pid_not_in_admit = detn[~detn['pid'].isin(detn_admit_only['pid'])]['pid']
 detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 
-y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
-y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
+y_pred_proba_all1,explainer1a,ag_features1a = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
+y_pred_proba_all2,explainer2a,ag_features2a = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
 
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
@@ -189,9 +188,9 @@ pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'proba
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
 
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
-  json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2)
-  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series, json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+  # json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
+  json_series2 = export_waterfall_shap_values(explainer2a,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2a)
+  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 # survival
 logger.debug(f'{detn[label].sum()},{detn.shape}')
@@ -564,9 +563,9 @@ logger.debug(pid_probabilities.shape)
 pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'probability_{label}_stratified'].rank(pct=True)
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
+  # json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
   json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2)
-  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series, json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
 # clip for better visualization and so AFT models will work, guaranteeing all durations >0
