@@ -264,7 +264,7 @@ class DigitalOceanStorage:
             # zip up the contents of the temporary directory
             with tarfile.open(str(tempdir_path / "model.tar.gz"), "w:gz") as tar:
                 for file in files_to_save:
-                    tar.add(file, arcname=os.path.basename(file), recursive=True)
+                    tar.add(file, arcname=os.path.basename(str(Path(file))), recursive=True)
 
             # upload the tar file to DigitalOcean Spaces
             self.client.upload_file(
