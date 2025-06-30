@@ -180,6 +180,12 @@ detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
 y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
 
+print('ag_features1',ag_features1)
+print('ag_features2',ag_features2)
+print('detn_admit_only',detn_admit_only.shape)
+print('detn_filtered',detn_filtered.shape)
+
+
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
 pid_probabilities = pid_probabilities.join(y_pred_proba_all_stratified_series)
