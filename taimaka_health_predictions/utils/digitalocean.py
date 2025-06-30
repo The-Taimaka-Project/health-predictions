@@ -56,7 +56,7 @@ import pandas as pd
 from autogluon.tabular import TabularPredictor
 
 # Importing the default URL from globals.py
-from taimaka_health_predictions.utils.globals import DO_SPACE_URL
+from taimaka_health_predictions.utils.globals import DO_SPACE_PREFIX, DO_SPACE_URL
 
 
 class DigitalOceanStorage:
@@ -89,7 +89,7 @@ class DigitalOceanStorage:
             aws_secret_access_key=do_secret,
         )
 
-    def to_csv(self, df: pd.DataFrame, path: str, bucket: str = "inference-workflow") -> None:
+    def to_csv(self, df: pd.DataFrame, path: str, bucket: str = DO_SPACE_PREFIX) -> None:
         """
         Save a pandas dataframe to DigitalOcean Spaces.
 
@@ -111,7 +111,7 @@ class DigitalOceanStorage:
         if response["ResponseMetadata"]["HTTPStatusCode"] >= 400:
             raise ValueError(f"An error occurred: {response.get('Error')}")
 
-    def read_csv(self, path: str, bucket: str = "inference-workflow") -> pd.DataFrame:
+    def read_csv(self, path: str, bucket: str = DO_SPACE_PREFIX) -> pd.DataFrame:
         """
         Read a CSV from DigitalOcean Spaces.
 
@@ -130,7 +130,7 @@ class DigitalOceanStorage:
         response = self.client.get_object(Bucket=bucket, Key=path)
         return pd.read_csv(BytesIO(response["Body"].read()))
 
-    def to_pickle(self, object: Any, path: str, bucket: str = "inference-workflow") -> None:
+    def to_pickle(self, object: Any, path: str, bucket: str = DO_SPACE_PREFIX) -> None:
         """
         Save an object to DigitalOcean Spaces as a pickle.
 
@@ -150,7 +150,7 @@ class DigitalOceanStorage:
         if response["ResponseMetadata"]["HTTPStatusCode"] >= 400:
             raise ValueError(f"An error occurred: {response.get('Error')}")
 
-    def read_pickle(self, path: str, bucket: str = "inference-workflow") -> Any:
+    def read_pickle(self, path: str, bucket: str = DO_SPACE_PREFIX) -> Any:
         """
         Read a pickle from DigitalOcean Spaces.
 
@@ -169,9 +169,7 @@ class DigitalOceanStorage:
         response = self.client.get_object(Bucket=bucket, Key=path)
         return pickle.loads(response["Body"].read())
 
-    def to_json(
-        self, object: Dict[str, Any], path: str, bucket: str = "inference-workflow"
-    ) -> None:
+    def to_json(self, object: Dict[str, Any], path: str, bucket: str = DO_SPACE_PREFIX) -> None:
         """
         Save a dictionary to DigitalOcean Spaces as a JSON file.
 
@@ -191,7 +189,7 @@ class DigitalOceanStorage:
         if response["ResponseMetadata"]["HTTPStatusCode"] >= 400:
             raise ValueError(f"An error occurred: {response.get('Error')}")
 
-    def read_json(self, path: str, bucket: str = "inference-workflow") -> Dict[str, Any]:
+    def read_json(self, path: str, bucket: str = DO_SPACE_PREFIX) -> Dict[str, Any]:
         """
         Read a JSON file from DigitalOcean Spaces.
 
@@ -214,7 +212,7 @@ class DigitalOceanStorage:
         self,
         predictor: TabularPredictor,
         path: str,
-        bucket: str = "inference-workflow",
+        bucket: str = DO_SPACE_PREFIX,
         model_metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
@@ -274,7 +272,7 @@ class DigitalOceanStorage:
             )
 
     def read_autogluon_tarball(
-        self, path: str, bucket: str = "inference-workflow", local_path: Optional[str] = None
+        self, path: str, bucket: str = DO_SPACE_PREFIX, local_path: Optional[str] = None
     ) -> Tuple[TabularPredictor, Dict[str, Any]]:
         """
         Read an AutoGluon TabularPredictor from DigitalOcean Spaces.
