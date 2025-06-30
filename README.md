@@ -85,7 +85,7 @@ After each scheduled run, logs are stored in `/var/spool/mail/hmerrill`.
 │       └── globals.py                                  # Global 
 ├── tests                                               # Unit tests.
 │   └── test_util.py
-├── to_archive                                          # Legacy code, for reference.
+├── notebooks                                           # Notebooks and legacy code, for reference.
 │   ├── data-update.R
 │   ├── etl_deterioration.ipynb
 │   ├── etl.ipynb
