@@ -23,7 +23,7 @@ dynamic = ["dependencies"]
 infer = "taimaka_health_predictions.inference.run:main"
 
 [tool.setuptools.packages.find]
-exclude = ["to_archive"]
+exclude = ["notebooks"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
