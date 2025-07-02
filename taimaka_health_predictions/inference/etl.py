@@ -6,7 +6,7 @@ and process it into weekly data.
 from taimaka_health_predictions.utils.globals import logger
 from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress, EtlReaderWriter
 # set FAIL_MODE to True if exceptions should be raised
-FAIL_MODE = True
+FAIL_MODE = False
 # set TRAIN_MODE to True if rows should be dropped if weekly cadence skips more than 4 weeks (1% of weekly patients)
 TRAIN_MODE = False
 
