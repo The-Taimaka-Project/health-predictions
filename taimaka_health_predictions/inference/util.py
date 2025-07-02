@@ -33,6 +33,7 @@ class EtlReaderWriter:
             - relapse: The raw relapse data.
             - mh: The raw mental health data.
     """
+    from taimaka_health_predictions.utils.globals import ETL_DIR
     current = self.do_storage.read_csv(ETL_DIR +"FULL_pba_current_processed_2024-11-15.csv")
     admit = self.do_storage.read_csv(ETL_DIR +"FULL_pba_admit_processed_2024-11-15.csv")
     weekly = self.do_storage.read_csv(ETL_DIR +"FULL_pba_weekly_processed_2024-11-15.csv")
