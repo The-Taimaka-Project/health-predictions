@@ -1,6 +1,8 @@
 """
 This script will contain functions that load cleaned data from the Postgres database
-and process it into weekly data.
+and process it into weekly data.  It takes about 25 minutes to run, most of the time
+due to running the linear regression for the 6 anthropometrics for each patient, giving trend and rsquared
+which are important predictors.
 """
 
 from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress, EtlReaderWriter
