@@ -8,6 +8,7 @@ Original file is located at
 
 # summary
 run inference on the chance of models, time until event models, export waterfall shap waterfall chart values for the AG chance of models for explanability
+takes about 8 minutes to run on a relatively low-powered AMD64 laptop with 4 cores
 
 # setup
 
