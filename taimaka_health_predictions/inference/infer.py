@@ -189,13 +189,19 @@ top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratif
 
 if EXPORT_SHAP_WATERFALL:
   print('detn_admit_only shape',detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)].shape)
-  print(ag_features1a)
+  print('ag_features1a',ag_features1a)
+  print('ag_features2a',ag_features2a)
   print('wfh_rsquared' in detn_admit_only.columns)  
-  print(detn_admit_only.columns)      
   # json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
-  json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a)  
+  #json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a)  
   json_series2 = export_waterfall_shap_values(explainer2a,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2a)
-  pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series,json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+  #pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series,json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
+
+if EXPORT_SHAP_WATERFALL:
+    json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
+
+if EXPORT_SHAP_WATERFALL:
+    pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series,json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 # survival
 logger.debug(f'{detn[label].sum()},{detn.shape}')
