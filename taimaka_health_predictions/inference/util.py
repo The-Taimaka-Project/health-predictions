@@ -44,7 +44,7 @@ class EtlReaderWriter:
     return current,admit,weekly,raw,weekly_raw,itp,relapse,mh
 
 class DetnReaderWriter:
-   """
+  """
    A class for reading and writing 'detn' data, potentially related to detentions
    or similar data structures, from Google Drive or DigitalOcean Storage.
 
@@ -52,7 +52,8 @@ class DetnReaderWriter:
        dir (str): The base directory for reading/writing files on Google Drive.
        do_storage (DigitalOceanStorage): An instance of the DigitalOceanStorage class
                                          for interacting with DigitalOcean object storage.
-   """
+  """
+  
   def __init__(self):
     self.dir = "/content/drive/My Drive/[PBA] Data/analysis/"
     # Set global output format to Pandas
