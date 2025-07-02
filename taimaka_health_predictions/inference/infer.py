@@ -181,7 +181,7 @@ print('explainer1a',explainer1a)
 print('ag_features1a',ag_features1a)
 
 if EXPORT_SHAP_WATERFALL:    
-  print('detn_admit_only shape',detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)].shape)
+  #print('detn_admit_only shape',detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)].shape)
   json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
 
 
