@@ -1,6 +1,11 @@
 """
 This script will contain functions that take weekly data returned by functions in etl.py
 and process it to create a time-series dataframe that is ready for inference.
+Takes about 10 minutes to run, most of it updating the linear regression of anthropometrics trends for 
+the truncated time series for patients that have had an event occurrence 
+(truncated so future doesn't leak into the present, important for modelling)
+
+requires statsmodel to be pip-installed
 """
 
 import os
@@ -1393,8 +1398,8 @@ for col in deterioration_types:
     export[col] = export[col].astype(int)
     export["row_count"].fillna(0, inplace=True)
     export["weekly_row_count"].fillna(0, inplace=True)
-    logger.info(f'{export.shape}, {export["pid"].nunique()}, {export[col].sum()}')
-    # do_storage.to_pickle(export, ETL_DIR + f"{col}.pkl")
+    logger.info(f'{col}: shape: {export.shape}, pids: {export["pid"].nunique()}, events: {export[col].sum()}')
+    do_storage.to_pickle(export, ETL_DIR + f"{col}.pkl")
     # with open(dir + f"analysis/{col}.pkl", "wb") as f:
     #    pickle.dump(export, f)
 
