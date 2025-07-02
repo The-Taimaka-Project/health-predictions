@@ -3,7 +3,6 @@ This script will contain functions that load cleaned data from the Postgres data
 and process it into weekly data.
 """
 
-from taimaka_health_predictions.utils.globals import logger
 from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress, EtlReaderWriter
 # set FAIL_MODE to True if exceptions should be raised
 FAIL_MODE = False
@@ -19,7 +18,8 @@ import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
 from tqdm import tqdm
-
+from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+from taimaka_health_predictions.utils.globals import ETL_DIR, logger
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=pd.errors.SettingWithCopyWarning)
@@ -28,7 +28,7 @@ simplefilter(action='ignore', category=FutureWarning)
 # run secrets first to set the environment variables for your credentials
 do_storage = DigitalOceanStorage()
 
-# TODO: replace Google Drive with Postgres database
+# TODO: replace DO with Postgres database
 reader_writer = EtlReaderWriter()
 
 # Call the read method method
