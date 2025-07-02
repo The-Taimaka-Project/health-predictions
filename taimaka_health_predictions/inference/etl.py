@@ -1,12 +1,13 @@
 """
 This script will contain functions that load cleaned data from the Postgres database
-and process it into weekly data.
+and process it into weekly data.  It takes about 25 minutes to run, most of the time
+due to running the linear regression for the 6 anthropometrics for each patient, giving trend and rsquared
+which are important predictors.
 """
 
-from taimaka_health_predictions.utils.globals import logger
 from util import convert_to_bool, find_collinear_columns, infer_phq_score, make_categorical, regress, EtlReaderWriter
 # set FAIL_MODE to True if exceptions should be raised
-FAIL_MODE = True
+FAIL_MODE = False
 # set TRAIN_MODE to True if rows should be dropped if weekly cadence skips more than 4 weeks (1% of weekly patients)
 TRAIN_MODE = False
 
@@ -19,13 +20,17 @@ import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
 from tqdm import tqdm
-
+from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+from taimaka_health_predictions.utils.globals import ETL_DIR, logger
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=pd.errors.SettingWithCopyWarning)
+simplefilter(action='ignore', category=FutureWarning)
 
+# run secrets first to set the environment variables for your credentials
+do_storage = DigitalOceanStorage()
 
-# TODO: replace Google Drive with Postgres database
+# TODO: replace DO with Postgres database
 reader_writer = EtlReaderWriter()
 
 # Call the read method method
@@ -52,7 +57,10 @@ if weekly_raw[["pid", "todate", "end_time"]].isnull().sum().sum() > 0 & FAIL_MOD
 
 # Check for duplicate pids in the 'admit' DataFrame
 duplicate_pids_admit = admit[admit.duplicated(subset=["pid"], keep=False)]
-logger.info(f"Duplicate pids found in 'admit' DataFrame: {duplicate_pids_admit['pid'].unique()}")
+
+if (not duplicate_pids_admit.empty):
+    logger.warn(f"Duplicate pids found in 'admit' DataFrame: {duplicate_pids_admit['pid'].unique()}")
+
 
 # prompt: if not duplicate_pids_admit.empty throw a runtime exception
 if (not duplicate_pids_admit.empty) & FAIL_MODE:
@@ -1666,32 +1674,16 @@ admit_raw = admit_current.iloc[:, :first_current_column].copy()
 
 # prompt: write admit_current and left_admit_weekly to csv and export them to [PBA] Data\analysis
 def write_to_analysis():
-    # admit_current.to_csv(dir + "analysis/admit_current.csv", index=False)
-    # admit_current_mh.to_csv(dir + "analysis/admit_current_mh.csv", index=False)
-    # admit_current_relapse.to_csv(dir + "analysis/admit_current_relapse.csv", index=False)
-    # admit_weekly.to_csv(dir + "analysis/admit_current_weekly.csv", index=False)
-    # weekly_joined.to_csv(dir + "analysis/weekly.csv", index=False)
-    # prompt: pickle admit_current and write to "analysis/admit_current.pkl"
-
-    # Pickle admit_current and write to "analysis/admit_current.pkl"
-    with open(dir + "analysis/admit_current.pkl", "wb") as f:
-        pickle.dump(admit_current, f)
-    with open(dir + "analysis/admit_current_mh.pkl", "wb") as f:
-        pickle.dump(admit_current_mh, f)
-    with open(dir + "analysis/admit_current_relapse.pkl", "wb") as f:
-        pickle.dump(admit_current_relapse, f)
-    with open(dir + "analysis/weekly.pkl", "wb") as f:
-        pickle.dump(weekly_joined, f)
-    with open(dir + "analysis/admit_weekly.pkl", "wb") as f:
-        pickle.dump(admit_weekly, f)
-    with open(dir + "analysis/admit_processed_raw.pkl", "wb") as f:
-        pickle.dump(admit_raw, f)
+    # Pickle and write to DO 
+    do_storage.to_pickle(admit_current, ETL_DIR + "admit_current.pkl")
+    do_storage.to_pickle(admit_current_mh, ETL_DIR + "admit_current_mh.pkl")
+    do_storage.to_pickle(admit_current_relapse, ETL_DIR + "admit_current_relapse.pkl")
+    do_storage.to_pickle(weekly_joined, ETL_DIR + "weekly.pkl")
+    do_storage.to_pickle(admit_weekly, ETL_DIR + "admit_weekly.pkl")
+    do_storage.to_pickle(admit_raw, ETL_DIR + "admit_processed_raw.pkl")
 
 
 logger.debug(f'shapes: {admit_current.shape},{admit_current_mh.shape},{admit_current_relapse.shape}, {admit_weekly.shape}')
-
 logger.debug(f"pid ct: {admit_current['pid'].nunique()},{admit_current_mh['pid'].nunique()},{admit_current_relapse['pid'].nunique()}, {admit_weekly['pid'].nunique()}")
 
-
-dir = "/content/drive/My Drive/[PBA] Data/"
 write_to_analysis()

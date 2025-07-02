@@ -1,6 +1,11 @@
 """
 This script will contain functions that take weekly data returned by functions in etl.py
 and process it to create a time-series dataframe that is ready for inference.
+Takes about 10 minutes to run, most of it updating the linear regression of anthropometrics trends for 
+the truncated time series for patients that have had an event occurrence 
+(truncated so future doesn't leak into the present, important for modelling)
+
+requires statsmodel to be pip-installed
 """
 
 import os
@@ -10,62 +15,33 @@ from warnings import simplefilter
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
-from google.colab import drive
 from tqdm import tqdm
 from util import convert_bool_to_int, infer_phq_score, regress
 import json
 import logging
-# Create a logger# Create a logger
-logger = logging.getLogger('my_logger')
-logger.setLevel(logging.DEBUG) # Set the minimum logging level
+from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+from taimaka_health_predictions.utils.globals import ETL_DIR, logger
 
-# Create a handler to output logs to the console
-console_handler = logging.StreamHandler()
-
-file_handler = logging.FileHandler('my_log.log')
-file_handler.setLevel(logging.INFO) # Set the logging level for the handler
-
-
-# Create a formatter to specify the log message format
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s')
-
-# Add the formatter to the handler
-
-file_handler.setFormatter(formatter)
-
-# Add the handler to the logger
-logger.addHandler(file_handler)
-
-
-
-# prompt: read google shared drive file
-
-drive.mount("/content/drive")
-
-dir = "/content/drive/My Drive/[PBA] Data/"
-
-os.chdir("/content")
 
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=pd.errors.SettingWithCopyWarning)
 simplefilter(action="ignore", category=FutureWarning)
 
+# run secrets first to set the environment variables for your credentials
+do_storage = DigitalOceanStorage()
 
-# Load the pickle file
-with open(dir + "analysis/admit_weekly.pkl", "rb") as f:
-    admit_weekly = pickle.load(f)
-with open(dir + "analysis/admit_processed_raw.pkl", "rb") as f:
-    admit_raw = pickle.load(f)
+
+# Load the pickle files that were output from etl.py
+admit_weekly = do_storage.read_pickle(ETL_DIR + 'admit_weekly.pkl')
+admit_raw = do_storage.read_pickle(ETL_DIR + 'admit_processed_raw.pkl')
 
 # Load the mental health
-with open(dir + "analysis/admit_current_mh.pkl", "rb") as f:
-    admit_current_mh = pickle.load(f)
-# Load admit/current (needed for phq inference)
-with open(dir + "analysis/admit_current.pkl", "rb") as f:
-    admit_current = pickle.load(f)
+admit_current_mh = do_storage.read_pickle(ETL_DIR + 'admit_current_mh.pkl')
 
-   
+# Load admit/current (needed for phq inference)
+admit_current = do_storage.read_pickle(ETL_DIR + 'admit_current.pkl')
+
 
 
 numeric_cols = admit_weekly.select_dtypes(include=np.number).columns
@@ -1422,7 +1398,8 @@ for col in deterioration_types:
     export[col] = export[col].astype(int)
     export["row_count"].fillna(0, inplace=True)
     export["weekly_row_count"].fillna(0, inplace=True)
-    logger.debutg(f'{export.shape}, {export["pid"].nunique()}, {export[col].sum()}')
-    with open(dir + f"analysis/{col}.pkl", "wb") as f:
-        pickle.dump(export, f)
+    logger.info(f'{col}: shape: {export.shape}, pids: {export["pid"].nunique()}, events: {export[col].sum()}')
+    do_storage.to_pickle(export, ETL_DIR + f"{col}.pkl")
+    # with open(dir + f"analysis/{col}.pkl", "wb") as f:
+    #    pickle.dump(export, f)
 

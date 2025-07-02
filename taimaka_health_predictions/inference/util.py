@@ -8,26 +8,53 @@
 import pandas as pd
 
 class EtlReaderWriter:
-  """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
-  def __init__(self):
-    from google.colab import drive
-    drive.mount("/content/drive")
+  """
+    A class to read various ETL processed CSV files from DigitalOcean Storage.
 
+    Attributes:
+      do_storage (DigitalOceanStorage): An instance of DigitalOceanStorage for interacting with object storage.
+  """
+  
+  def __init__(self):
+    from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
+    self.do_storage = DigitalOceanStorage()
+    
   def read_data(self):
-    import pandas as pd
-    dir = "/content/drive/My Drive/[PBA] Full datasets/"
-    current = pd.read_csv(dir + "FULL_pba_current_processed_2024-11-15.csv")
-    admit = pd.read_csv(dir + "FULL_pba_admit_processed_2024-11-15.csv")
-    weekly = pd.read_csv(dir + "FULL_pba_weekly_processed_2024-11-15.csv")
-    raw = pd.read_csv(dir + "FULL_pba_admit_raw_2024-11-15.csv")
-    weekly_raw = pd.read_csv(dir + "FULL_pba_weekly_raw_2024-11-15.csv")
-    itp = pd.read_csv(dir + "FULL_pba_itp_roster_2024-11-15.csv")
-    relapse = pd.read_csv(dir + "FULL_pba_relapse_raw2024-11-15.csv")
-    mh = pd.read_csv(dir + "FULL_pba_mh_raw2024-11-15.csv")
+    """Reads and returns various ETL datasets from DigitalOcean Spaces.
+
+    Returns:
+        tuple: A tuple containing the following pandas DataFrames:
+            - current: The current processed PBA data.
+            - admit: The admit processed PBA data.
+            - weekly: The weekly processed PBA data.
+            - raw: The raw admit PBA data.
+            - weekly_raw: The raw weekly PBA data.
+            - itp: The ITP roster data.
+            - relapse: The raw relapse data.
+            - mh: The raw mental health data.
+    """
+    from taimaka_health_predictions.utils.globals import ETL_DIR
+    current = self.do_storage.read_csv(ETL_DIR +"FULL_pba_current_processed_2024-11-15.csv")
+    admit = self.do_storage.read_csv(ETL_DIR +"FULL_pba_admit_processed_2024-11-15.csv")
+    weekly = self.do_storage.read_csv(ETL_DIR +"FULL_pba_weekly_processed_2024-11-15.csv")
+    raw = self.do_storage.read_csv(ETL_DIR +"FULL_pba_admit_raw_2024-11-15.csv")
+    weekly_raw = self.do_storage.read_csv(ETL_DIR +"FULL_pba_weekly_raw_2024-11-15.csv")
+    itp = self.do_storage.read_csv(ETL_DIR +"FULL_pba_itp_roster_2024-11-15.csv")
+    relapse = self.do_storage.read_csv(ETL_DIR +"FULL_pba_relapse_raw2024-11-15.csv")
+    mh = self.do_storage.read_csv(ETL_DIR +"FULL_pba_mh_raw2024-11-15.csv")    
     return current,admit,weekly,raw,weekly_raw,itp,relapse,mh
 
 class DetnReaderWriter:
-  """Class for reading/writing ETL data to/from DigitalOcean Spaces/Postgres or Google Drive."""
+  """
+   A class for reading and writing 'detn' data, potentially related to detentions
+   or similar data structures, from Google Drive or DigitalOcean Storage.
+
+   Attributes:
+       dir (str): The base directory for reading/writing files on Google Drive.
+       do_storage (DigitalOceanStorage): An instance of the DigitalOceanStorage class
+                                         for interacting with DigitalOcean object storage.
+  """
+  
   def __init__(self):
     self.dir = "/content/drive/My Drive/[PBA] Data/analysis/"
     # Set global output format to Pandas
@@ -37,12 +64,31 @@ class DetnReaderWriter:
     self.do_storage = DigitalOceanStorage()
     
   def read_detn_google_drive(self,label):
+    """
+    Reads 'detn' data from a pickle file stored in the specified Google Drive directory.
+
+    Args:
+        label (str): The label or name of the 'detn' file (without the .pkl extension).
+
+    Returns:
+        object: The deserialized object loaded from the pickle file.
+    """
+
     import pickle
     with open(self.dir + f'{label}.pkl', 'rb') as f:
       detn = pickle.load(f)
     return detn
 
   def read_detn(self,label):
+    """
+    Reads 'detn' data from a pickle file stored in DigitalOcean Storage.
+
+    Args:
+        label (str): The label or name of the 'detn' file (without the .pkl extension).
+
+    Returns:
+        object: The deserialized object loaded from the pickle file in DigitalOcean Storage.
+    """
     from taimaka_health_predictions.utils.globals import ETL_DIR
     detn = self.do_storage.read_pickle( ETL_DIR + f'{label}.pkl')
     return detn      
