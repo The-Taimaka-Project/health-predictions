@@ -55,7 +55,10 @@ if weekly_raw[["pid", "todate", "end_time"]].isnull().sum().sum() > 0 & FAIL_MOD
 
 # Check for duplicate pids in the 'admit' DataFrame
 duplicate_pids_admit = admit[admit.duplicated(subset=["pid"], keep=False)]
-logger.info(f"Duplicate pids found in 'admit' DataFrame: {duplicate_pids_admit['pid'].unique()}")
+
+if (not duplicate_pids_admit.empty):
+    logger.warn(f"Duplicate pids found in 'admit' DataFrame: {duplicate_pids_admit['pid'].unique()}")
+
 
 # prompt: if not duplicate_pids_admit.empty throw a runtime exception
 if (not duplicate_pids_admit.empty) & FAIL_MODE:
