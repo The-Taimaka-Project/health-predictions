@@ -177,19 +177,11 @@ pid_not_in_admit = detn[~detn['pid'].isin(detn_admit_only['pid'])]['pid']
 detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 
 y_pred_proba_all1,explainer1a,ag_features1a = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
-print('explainer1a',explainer1a)
-print('ag_features1a',ag_features1a)
 
 if EXPORT_SHAP_WATERFALL:    
-  # print('detn_admit_only shape',detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)].shape)
   json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
 
-
 y_pred_proba_all2,explainer2a,ag_features2a = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
-print('explainer2a',explainer2a)
-print('ag_features2a',ag_features2a)
-
-
 
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
@@ -200,13 +192,8 @@ pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'proba
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
 
 if EXPORT_SHAP_WATERFALL:
-  #print('wfh_rsquared' in detn_admit_only.columns)  
-  # json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
-  #json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a)  
   json_series2 = export_waterfall_shap_values(explainer2a,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2a)
   pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series,json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
-
-
 
 
 # survival
@@ -569,8 +556,12 @@ detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 detn_filtered.replace([np.inf, -np.inf], np.nan, inplace=True)
 
 
-y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,'1')
-y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,'not1')
+y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
+
+if EXPORT_SHAP_WATERFALL:
+  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1)
+    
+y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
 
 y_pred_proba_all_stratified = pd.concat([y_pred_proba_all1,y_pred_proba_all2],axis=0)
 y_pred_proba_all_stratified_series = y_pred_proba_all_stratified[1].rename(f'probability_{label}_stratified')
@@ -579,9 +570,8 @@ logger.debug(pid_probabilities.shape)
 
 pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'probability_{label}_stratified'].rank(pct=True)
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
+
 if EXPORT_SHAP_WATERFALL:
-  # json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only['pid'].isin(top_pct_pids)) & (detn_admit_only[label]== 0)],ag_features1)
-  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1)
   json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2)
   pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series,json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
