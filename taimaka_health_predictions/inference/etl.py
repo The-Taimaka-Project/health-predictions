@@ -322,7 +322,7 @@ logger.debug(f"Columns with one unique value: {cols_with_one_nunique}")
 
 # then drop them
 logger.debug(f"raw shape: {raw.shape}")
-raw.drop(cols_with_one_nunique, axis=1, inplace=True)
+# raw.drop(cols_with_one_nunique, axis=1, inplace=True)
 logger.debug(f"raw shape: {raw.shape}")
 
 # Replace 'resp_rate' values greater than 300 with 'resp_rate_2' values
@@ -355,7 +355,7 @@ logger.debug(f"{len(cols_with_one_nunique)} {cols_with_one_nunique}")
 
 # then drop them
 logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
-weekly_raw.drop(cols_with_one_nunique, axis=1, inplace=True)
+# weekly_raw.drop(cols_with_one_nunique, axis=1, inplace=True)
 logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
 
 
@@ -462,7 +462,7 @@ cols_with_one_nunique = [col for col in admit.columns if admit[col].nunique() ==
 logger.debug(f"{len(cols_with_one_nunique)} {cols_with_one_nunique}")
 logger.debug(f"admit {admit.shape}")
 # then drop them
-admit.drop(cols_with_one_nunique, axis=1, inplace=True)
+# admit.drop(cols_with_one_nunique, axis=1, inplace=True)
 logger.debug(f"admit {admit.shape}")
 
 
@@ -791,7 +791,7 @@ cols_with_one_nunique = [col for col in relapse.columns if relapse[col].nunique(
 logger.debug(cols_with_one_nunique)
 
 # then drop them
-relapse.drop(cols_with_one_nunique, axis=1, inplace=True)
+# relapse.drop(cols_with_one_nunique, axis=1, inplace=True)
 
 
 # so we can group by submission day
@@ -930,7 +930,7 @@ cols_with_one_nunique = [col for col in mh.columns if mh[col].nunique() == 1]
 logger.debug(cols_with_one_nunique)
 
 # then drop them, 24 columns# Merge mental health
-mh.drop(cols_with_one_nunique, axis=1, inplace=True)
+# mh.drop(cols_with_one_nunique, axis=1, inplace=True)
 
 # prompt: find rows where df['site_admit1'] != df['site_mh']
 df = pd.merge(admit, mh, on="pid", how="left", suffixes=("_admit1", "_mh"))
