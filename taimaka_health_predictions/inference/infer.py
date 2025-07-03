@@ -56,6 +56,9 @@ from lifelines import WeibullAFTFitter
 from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 from autogluon.tabular import TabularDataset, TabularPredictor
 
+from sqlalchemy import create_engine, text
+from urllib.parse import quote_plus
+
 detn_reader = DetnReaderWriter()
 
 # run secrets first to set the environment variables for your credentials
@@ -626,5 +629,24 @@ df = pd.merge(censored_subjects[['pid',duration_days_col]],y_pred_median,left_in
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 logger.debug(pid_probabilities.shape)
 
-# TODO write pid_probabilities to Postgres table
-#pid_probabilities.to_excel('pid_probabilities8.xlsx',index=None)
+
+# write pid_probabilities to Postgres table
+def get_engine():
+    user = os.environ.get("TAIMAKA_POSTGRES_USER")
+    pw = os.environ.get("TAIMAKA_POSTGRES_PW")
+    engine = create_engine(
+        f"postgresql+psycopg2://{user}:{quote_plus(pw)}@taimaka-internal.org/cmam"
+    )
+    return engine
+
+def upload_df_replace(df, tname):
+    engine = get_engine()
+    with engine.connect() as conn:
+        df.to_sql(tname, conn, if_exists='replace', index=False, schema="data")
+        conn.execute(text(f"grant all on data.{tname} to group__cmam_admin;"))
+        conn.execute(text(f"grant select on data.{tname} to group__cmam_program_readonly;"))
+        conn.commit()
+
+logger.info("Writing pid_probabilities to Postgres table...")
+upload_df_replace(pid_probabilities, 'pid_probabilities')
+logger.info("Finished writing pid_probabilities to Postgres table.")
