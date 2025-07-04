@@ -11,3 +11,6 @@ scikit-learn
 scipy
 tqdm
 xgboost
+setuptools
+sqlalchemy
+psycopg2-binary

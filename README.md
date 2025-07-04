@@ -11,6 +11,8 @@ Authors:
 
 This codebase contains functionality for extracting, transforming, and loading (ETL) patient data to prepare it as input for downstream predictive models of patient outcomes, as well as running inference on this data using those models.
 
+The entry point is [inference/run.py](taimaka_health_predictions/inference/run.py). It is a wrapper around the three main processes `etl`, `etl_deterioration` and `infer` in this repo.
+
 ## How to run
 
 ### First time setup
@@ -49,18 +51,41 @@ Now a command line tool called `infer` is available, and running it will run the
 
 [Cron](https://help.ubuntu.com/community/CronHowto) is a system used to run tasks on designated schedules. Each user on the server can schedule jobs. Currently, the inference jobs are scheduled under user `hmerrill`; if the schedule needs to be moved to another user, contact Justin Graham and/or Hunter Merrill.
 
-Hunter set the schedule by running `crontab -e` to open the scheduling file, and then pasting the following in the editor:
+Hunter set the schedule to daily at 5am (London time- the server is in London, and crontab uses local time) by running `crontab -e` to open the scheduling file, and then pasting the following in the editor:
 
 ```bash
-0 0 * * * cd /srv/projects/ && . .do_space_creds && cd health-predictions && . .venv/bin/activate && infer
+0 5 * * * bash /srv/projects/run_inference.sh
+```
+
+and creating a short bash script in `/srv/projects/run_inference.sh`:
+
+```bash
+#!/bin/bash
+
+# stop metabase (it will crash)
+sudo /srv/projects/docker-metabase stop
+
+# put credentials in environment
+cd /srv/projects/
+. .do_space_creds
+
+# activate virtual environment
+cd health-predictions
+. .venv/bin/activate
+
+# run it
+infer
+
+# restart metabase
+sudo /srv/projects/docker-metabase restart
 ```
 
 After each scheduled run, logs are stored in `/var/spool/mail/hmerrill`.
 
 ## Next Steps
 
-- Build out pipeline
-- Schedule the pipeline with a cron job.
+- Write out results to Postgres
+- Filter etl pipeline to just current patients
 
 ## Files and Structure
 
@@ -71,7 +96,7 @@ After each scheduled run, logs are stored in `/var/spool/mail/hmerrill`.
 │   ├── __init__.py
 │   ├── inference                                       # Inference module.
 │   │   ├── __init__.py
-│   │   ├── __main__.py                                 # Runs the ETL+inference pipeline.
+│   │   ├── run.py                                      # Runs the ETL+inference pipeline.
 │   │   ├── etl_deterioration.py                        # Make ETL data model-ready.
 │   │   ├── etl.py                                      # Load cleaned data from Postgres.
 │   │   ├── infer.py                                    # Conducts inference on model-ready data.
