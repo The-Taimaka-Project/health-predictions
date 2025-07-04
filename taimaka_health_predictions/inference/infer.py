@@ -57,6 +57,7 @@ from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 from autogluon.tabular import TabularDataset, TabularPredictor
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.types import JSON as sqlalchemy_json
 from urllib.parse import quote_plus
 
 detn_reader = DetnReaderWriter()
@@ -642,7 +643,10 @@ def get_engine():
 def upload_df_replace(df, tname):
     engine = get_engine()
     with engine.connect() as conn:
-        df.to_sql(tname, conn, if_exists='replace', index=False, schema="data")
+        
+        # ensure dict types are converted to JSON for Postgres
+        dtypes={k: sqlalchemy_json for k in df.select_dtypes(include=['object']).columns}
+        df.to_sql(tname, conn, if_exists='replace', index=False, schema="data", dtype=dtypes)
         conn.execute(text(f"grant all on data.{tname} to group__cmam_admin;"))
         conn.execute(text(f"grant select on data.{tname} to group__cmam_program_readonly;"))
         conn.commit()
