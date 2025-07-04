@@ -85,6 +85,7 @@ After each scheduled run, logs are stored in `/var/spool/mail/hmerrill`.
 ## Next Steps
 
 - Write out results to Postgres
+- Filter etl pipeline to just current patients
 
 ## Files and Structure
 

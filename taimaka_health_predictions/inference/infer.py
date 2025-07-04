@@ -58,6 +58,7 @@ from autogluon.tabular import TabularDataset, TabularPredictor
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.types import JSON as sqlalchemy_json
+from sqlalchemy.types import String as sqlalchemy_str
 from urllib.parse import quote_plus
 
 detn_reader = DetnReaderWriter()
@@ -632,6 +633,12 @@ logger.debug(pid_probabilities.shape)
 
 
 # write pid_probabilities to Postgres table
+def string_to_json(string):
+    v = string.replace("'", '"').replace("nan", "null")
+    v = "{}" if v == "null" else v
+    return json.loads(v)
+
+
 def get_engine():
     user = os.environ.get("TAIMAKA_POSTGRES_USER")
     pw = os.environ.get("TAIMAKA_POSTGRES_PW")
@@ -643,12 +650,23 @@ def get_engine():
 def upload_df_replace(df, tname):
     engine = get_engine()
     with engine.connect() as conn:
-        
+
         # ensure dict types are converted to JSON for Postgres
-        dtypes={k: sqlalchemy_json for k in df.select_dtypes(include=['object']).columns}
-        df.to_sql(tname, conn, if_exists='replace', index=False, schema="data", dtype=dtypes)
+        dtypes = {k: sqlalchemy_json for k in df.columns if "shap_data" in k}
+        for col in dtypes.keys():
+            df[col] = df[col].astype(str).fillna("nan").apply(string_to_json)
+
+        dtypes["pid"] = sqlalchemy_str
+        dtypes["status"] = sqlalchemy_str
+        dtypes["site_current"] = sqlalchemy_str
+
+        df.to_sql(
+            tname, conn, if_exists="replace", index=False, schema="data", dtype=dtypes
+        )
         conn.execute(text(f"grant all on data.{tname} to group__cmam_admin;"))
-        conn.execute(text(f"grant select on data.{tname} to group__cmam_program_readonly;"))
+        conn.execute(
+            text(f"grant select on data.{tname} to group__cmam_program_readonly;")
+        )
         conn.commit()
 
 logger.info("Writing pid_probabilities to Postgres table...")
