@@ -48,7 +48,7 @@ from taimaka_health_predictions.inference.util import (
     DetnReaderWriter,
     split_detn_new_onset_medical_complication
 )
-#import shap
+import shap
 
 from warnings import simplefilter,filterwarnings
 
@@ -60,6 +60,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.types import JSON as sqlalchemy_json
 from sqlalchemy.types import String as sqlalchemy_str
 from urllib.parse import quote_plus
+from typing import Dict, Any, List
+
 
 detn_reader = DetnReaderWriter()
 
@@ -79,8 +81,22 @@ pid_probabilities = admit_current[['pid','status','site_current']].copy()
 active_pids = pid_probabilities[pid_probabilities['status']=='active']['pid'].unique()
 logger.debug(pid_probabilities.shape)
 
-def export_waterfall_shap_values(explainer2,detn,features):
-  import shap
+def export_waterfall_shap_values(explainer2: shap.KernelExplainer, detn: pd.DataFrame, features: List[str]) -> pd.Series:
+  """
+  Calculates SHAP values using a KernelExplainer and organizes them into a pandas Series
+  indexed by patient ID, with each value being a dictionary containing SHAP values,
+  feature values, and feature names.
+
+  Args:
+      explainer2 (shap.KernelExplainer): The trained SHAP KernelExplainer object.
+      detn (pd.DataFrame): DataFrame containing patient data, including the features
+                           used for SHAP calculation and a 'pid' column.
+      features (List[str]): A list of feature names used in the explainer.
+
+  Returns:
+      pd.Series: A Series indexed by 'pid', where each element is a dictionary with
+                 'base_probability', 'shap_values', 'feature_values', and 'feature_names'.
+  """
 
   shap_values_all = explainer2.shap_values(detn[features]) # Calculate SHAP values
 
@@ -92,7 +108,7 @@ def export_waterfall_shap_values(explainer2,detn,features):
 
   # prompt: create a json object combining each array occurrence of exp_all.values with the corresponding array occurence of exp_all.data
 
-  json_objects = []
+  json_objects: List[Dict[str, Any]] = []
   for shap_values_array, feature_values_array in zip(exp_all.values, exp_all.data):
       # Create a dictionary for the current instance
       data_dict = {
@@ -104,15 +120,44 @@ def export_waterfall_shap_values(explainer2,detn,features):
       json_objects.append(data_dict)
 
   # prompt: zip detn['pid'] and json_objects into a dict keyed by detn['pid']
+  json_dict: Dict[Any, Dict[str, Any]] = dict(zip(detn['pid'], json_objects))
 
-  json_dict = dict(zip(detn['pid'], json_objects))
-
-
-  # Example: Create a Series from the json_dict where the index is the pid
+  # Create a Series from the json_dict where the index is the pid
   json_series = pd.Series(json_dict)
   return json_series
 
+def export_survival_values(detn: pd.DataFrame, parm_series: pd.Series) -> Dict[Any, Dict[str, Any]]:
+  """
+  Exports survival model parameters and features for each patient in a dictionary format.
 
+  Args:
+      detn (pd.DataFrame): DataFrame containing patient data, including feature values
+                           and duration days. Must contain a 'pid' column for patient IDs.
+      parm_series (pd.Series): Series containing the survival model parameters, typically
+                               from a fitted WeibullAFTFitter model.
+
+  Returns:
+      Dict[Any, Dict[str, Any]]: A dictionary where keys are patient IDs and values are
+                                 dictionaries containing the survival model parameters
+                                 ('lambda', 'rho'), the patient's feature values,
+                                 duration days, and feature names.
+  """  
+  columns: List[str] = parm_series.index.get_level_values(1).unique().tolist()
+  columns.remove('Intercept')
+  json_objects: List[Dict[str, Any]] = []
+  for values_array, duration_days in zip(detn[columns].values, detn['duration_days'].values):
+      # Create a dictionary for the current instance
+      data_dict: Dict[str, Any] = {
+          'lambda': parm_series.loc['lambda_'].tolist(), # first entry is intercept
+          'rho': parm_series.loc['rho_'].tolist(), # first entry is intercept
+          'feature_values': values_array.tolist(),
+          'duration_days': duration_days,
+          'feature_names': columns
+      }
+      json_objects.append(data_dict)
+
+  json_dict: Dict[Any, Dict[str, Any]] = dict(zip(detn['pid'], json_objects))
+  return json_dict
 
 
 def read_detn(label):
@@ -154,7 +199,21 @@ logger.debug(f'{detn[label].sum()},{detn[label].mean()},{detn.shape}')
 #### stratified models by length of service
 """
 
-def run_ag_model(label,detn,suffix):
+def run_ag_model(label: str, detn: pd.DataFrame, suffix: str):
+  """
+  Runs an AutoGluon tabular prediction model and generates SHAP explanations.
+
+  Args:
+      label (str): The label column name for the prediction.
+      detn (pd.DataFrame): The input DataFrame containing features and the label.
+      suffix (str): A suffix to be appended to the model directory path.
+
+  Returns:
+      tuple: A tuple containing:
+          - y_pred_proba_all (pd.DataFrame): Predicted probabilities for all classes.
+          - explainer (shap.KernelExplainer): SHAP explainer object.
+          - ag_features (list): List of features used by the AutoGluon model.
+  """
   from autogluon.tabular import TabularDataset, TabularPredictor
   from util import AutogluonWrapper
   import shap
@@ -162,20 +221,20 @@ def run_ag_model(label,detn,suffix):
 
   predictor, metadata = do_storage.read_autogluon_tarball(path=f"{MODEL_DIR}{label}{suffix}/{VERSION}/model.tar.gz")  
 
-  ag_features = predictor.features()
+  ag_features: List[str] = predictor.features()
   logger.debug(f'ag features:, {len(ag_features)}, {ag_features}')
 
 
   y_pred_proba_all = predictor.predict_proba(detn[ag_features])
 
-  target_class = 1  # can be any possible value of the label column
-  negative_class = 0
+  target_class: int = 1  # can be any possible value of the label column
+  negative_class: int = 0
   baseline = detn[ag_features][detn[label]==negative_class].sample(20, random_state=0)
   ag_wrapper = AutogluonWrapper(predictor, ag_features, target_class)
   explainer = shap.KernelExplainer(ag_wrapper.predict_proba, baseline)
-
-
   return y_pred_proba_all,explainer,ag_features
+
+
 detn_admit_only,_,_,_ = split_detn_new_onset_medical_complication(detn,label)
 
 #detn_admit_only = make_dummy_columns(detn_admit_only)
@@ -295,6 +354,10 @@ df = pd.merge(censored_subjects[['pid','wk1_muac','muac_diff','muac_diff_ratio_r
 
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
 
+json_dict = export_survival_values(detn,aft.params_)
+pid_probabilities = pd.merge(pid_probabilities, pd.Series(json_dict).rename(f'{label}_survival_data'), left_on='pid', right_index=True, how='left')
+
+
 # poor weight gain
 
 
@@ -394,6 +457,10 @@ y_median.rename(f'median_days_to_{label}',inplace=True)
 df = pd.merge(censored_subjects[['pid','weight_trend',duration_days_col]],y_median,left_index=True,right_index=True)
 
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
+
+json_dict = export_survival_values(detn,aft.params_)
+pid_probabilities = pd.merge(pid_probabilities, pd.Series(json_dict).rename(f'{label}_survival_data'), left_on='pid', right_index=True, how='left')
+
 logger.debug(pid_probabilities.shape)
 
 # muac loss 2 weeks consecutive
@@ -494,6 +561,10 @@ y_median.rename(f'median_days_to_{label}',inplace=True)
 df = pd.merge(censored_subjects[['pid','wfh_trend',duration_days_col]],y_median,left_index=True,right_index=True)
 
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
+
+json_dict = export_survival_values(detn,aft.params_)
+pid_probabilities = pd.merge(pid_probabilities, pd.Series(json_dict).rename(f'{label}_survival_data'), left_on='pid', right_index=True, how='left')
+
 logger.debug(pid_probabilities.shape)
 
 
@@ -629,6 +700,9 @@ censored_subjects.rename(columns={'duration_days':duration_days_col},inplace=Tru
 df = pd.merge(censored_subjects[['pid',duration_days_col]],y_pred_median,left_index=True,right_index=True)
 
 pid_probabilities =pd.merge(pid_probabilities,df,on='pid',how='left')
+json_dict = export_survival_values(detn,aft.params_)
+pid_probabilities = pd.merge(pid_probabilities, pd.Series(json_dict).rename(f'{label}_survival_data'), left_on='pid', right_index=True, how='left')
+
 logger.debug(pid_probabilities.shape)
 
 
@@ -670,5 +744,6 @@ def upload_df_replace(df, tname):
         conn.commit()
 
 logger.info("Writing pid_probabilities to Postgres table...")
+print(pid_probabilities.head())
 upload_df_replace(pid_probabilities, 'pid_probabilities')
 logger.info("Finished writing pid_probabilities to Postgres table.")

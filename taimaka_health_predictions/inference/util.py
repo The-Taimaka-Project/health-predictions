@@ -500,6 +500,7 @@ def explain_gbm_model(gbm5, detn5, idx, iloc, gbm_features, label):
 
 def split_detn_new_onset_medical_complication(detn, label):
     import pandas as pd
+    from taimaka_health_predictions.utils.globals import logger
 
     # split detn into 4 very different subsets:
     # Use .copy() to ensure detn_admit_only is a copy, not a view
@@ -581,7 +582,7 @@ def split_detn_new_onset_medical_complication(detn, label):
         columns=[col for col in detn_wk2.columns if col.endswith("rsquared")], inplace=True
     )
 
-    print(detn_admit_only.shape, detn_wk1_only.shape, detn_wk2.shape, detn_wk3.shape)
+    logger.info(f'detn_admit_only shape {detn_admit_only.shape}')
     # detn_admit_only = make_dummy_columns(detn_admit_only)
     # detn_wk1_only = make_dummy_columns(detn_wk1_only)
     # detn_wk2 = make_dummy_columns(detn_wk2)
@@ -695,6 +696,7 @@ def reduce_dimensionality(detn, columns_for_reduction, reduced_column_name):
     import pandas as pd
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import StandardScaler
+    from taimaka_health_predictions.utils.globals import logger
 
     # Select the columns for dimensionality reduction
     df_nonnull = detn[columns_for_reduction].dropna()
@@ -717,7 +719,7 @@ def reduce_dimensionality(detn, columns_for_reduction, reduced_column_name):
 
     # Fit the PCA model on the selected columns
     pca.fit(scaled_data)
-    print(pca.explained_variance_ratio_)
+    logger.info(f'explained variance ratio for {columns_for_reduction}:  {pca.explained_variance_ratio_}')
     # Transform the data to reduce its dimensionality
     reduced_data = pca.transform(scaled_data)
     reduced_data.columns = [reduced_column_name]
