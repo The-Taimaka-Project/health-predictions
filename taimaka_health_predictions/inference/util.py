@@ -1668,39 +1668,52 @@ def drop_columns_muac(detn,drop_muac=True,drop_weight=True,drop_height=True):
     detn.drop(columns=[col for col in detn.columns if 'weight' in col and col not in ['wk1_weight_diff_rate','detn_weight_loss_ever']],inplace=True)
 
 def gbm_shap(
-    features,
-    N_FEATURES,
-    X_train_transformed,
-    X_test_transformed,
-    X_test_transformed_top,
-    y_train,
-    y_test,
-    cutoff=0.5,
-):
-    import shap
+    features: pd.Series,
+    N_FEATURES: int,
+    X_train_transformed: pd.DataFrame,
+    X_test_transformed: pd.DataFrame,
+    X_test_transformed_top: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+    cutoff: float = 0.5,
+) -> None:
+    """
+    Performs SHAP analysis on a trained LightGBM model.
 
-    gbm_best_features = list(features[N_FEATURES])
-    gbm2, _, _, _ = lightgbm_train(
+    Trains a LightGBM model on selected features, calculates SHAP values for the
+    test set, and generates SHAP summary and bar plots.
+
+    Args:
+        features: A Pandas Series containing feature importance or ranking information.
+        N_FEATURES: The number of top features to select.
+        X_train_transformed: The transformed training data DataFrame.
+        X_test_transformed: The transformed test data DataFrame.
+        X_test_transformed_top: The top features transformed test data DataFrame.
+        y_train: The training target variable Series.
+        y_test: The test target variable Series.
+        cutoff: The clustering cutoff value for the SHAP bar plot.
+    """
+    import shap
+    gbm_best_features: List[str] = list(features[N_FEATURES])
+    gbm2, _, _, _, _ = lightgbm_train(
         X_train_transformed[gbm_best_features],
         X_test_transformed[gbm_best_features],
         y_train,
         y_test,
     )
     # Create a SHAP explainer object
-    explainer = shap.TreeExplainer(gbm2)
-    shap_values = explainer.shap_values(X_test_transformed[gbm_best_features])
-
+    explainer: shap.TreeExplainer = shap.TreeExplainer(gbm2)
+    shap_values: shap.Explanation = explainer.shap_values(X_test_transformed[gbm_best_features])
     # Generate summary plot
     shap.summary_plot(shap_values, X_test_transformed_top[gbm_best_features])
     # Wrap shap_values in an Explanation object
-    shap_values_explanation = shap.Explanation(
+    shap_values_explanation: shap.Explanation = shap.Explanation(
         shap_values,
         data=X_test_transformed_top[
             gbm_best_features
         ].values,  # Assuming .values gives you the underlying NumPy array
         feature_names=gbm_best_features,
     )  # Assuming .columns gives you the feature names
-
     clustering = shap.utils.hclust(X_test_transformed_top[gbm_best_features], y_test)
     shap.plots.bar(
         shap_values_explanation, max_display=20, clustering=clustering, clustering_cutoff=cutoff
@@ -1834,10 +1847,21 @@ def select_features(
 
     return best_gbm, best_features, pd.DataFrame(results4), best_aic, features
 
-def strip_column_names(top_features):
-    # prompt: for each column in top_features remove the period and the text after the period
+def strip_column_names(top_features: list) -> list:
+    """
+    Removes periods and subsequent text from column names in a list.
 
-    # Assuming 'top_features' list is already defined as in your provided code.
+    Also removes "_day" and "_month" suffixes.
+
+    Args:
+        top_features: A list of column names (strings).
+
+    Returns:
+        A list of processed column names with periods, subsequent text,
+        and specified suffixes removed.
+    """
+
+    # prompt: for each column in top_features remove the period and the text after the period
     top_features = [col.split(".", 1)[0] for col in top_features]
     top_features = [
         col.replace("_day", "") if col.endswith("_day") else col for col in top_features
