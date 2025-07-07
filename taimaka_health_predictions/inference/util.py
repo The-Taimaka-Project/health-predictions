@@ -6,6 +6,10 @@
 # 2. move all imports to the top of the file
 
 import pandas as pd
+import numpy as np
+import lightgbm as lgb
+from typing import List, Tuple
+
 
 class EtlReaderWriter:
   """
@@ -1275,24 +1279,42 @@ def explain_tree_sample(clf, idx, X_test):
         )
 
 
-def get_aic(gbm, X_test_transformed, y_test):
+def get_aic(
+    gbm: lgb.Booster, X_test_transformed: pd.DataFrame, y_test: pd.Series
+) -> float:
+    """
+    Calculates the Akaike Information Criterion (AIC) for a trained LightGBM model.
+
+    AIC is calculated as: AIC = 2 * k - 2 * log(Likelihood), where k is the number
+    of parameters (features) in the model and log(Likelihood) is the log-likelihood
+    of the model.
+
+    Args:
+        gbm: A trained LightGBM Booster model object.
+        X_test_transformed: The transformed testing data DataFrame.
+        y_test: The testing target variable Series.
+
+    Returns:
+        The AIC score for the provided model and test data.
+    """
     import numpy as np
 
-    # prompt: get AIC value for gbm
     # Assuming 'gbm' is your trained LightGBM model and 'X_test_transformed' and 'y_test' are defined.
     # Calculate negative log-likelihood (you may need to adjust based on your specific loss function)
-    y_pred_prob = gbm.predict_proba(X_test_transformed)[:, 1]  # Get probabilities for class 1 only
+    y_pred_prob = gbm.predict_proba(
+        X_test_transformed
+    )[:, 1]  # Get probabilities for class 1 only
 
-    # y_pred_prob = gbm.predict(X_test_transformed, num_iteration=gbm.best_iteration)
-    log_likelihood = np.sum(y_test * np.log(y_pred_prob) + (1 - y_test) * np.log(1 - y_pred_prob))
+    #y_pred_prob = gbm.predict(X_test_transformed, num_iteration=gbm.best_iteration)
+    log_likelihood = np.sum(
+        y_test * np.log(y_pred_prob) + (1 - y_test) * np.log(1 - y_pred_prob)
+    )
 
     # Calculate AIC
-    # k = len(gbm.feature_name()) # Number of parameters (features)
+    #k = len(gbm.feature_name()) # Number of parameters (features)
     k = len(gbm.feature_name_)  # Number of parameters (features)
     aic = 2 * k - 2 * log_likelihood
-    # print(f"AIC: {aic}")
     return aic
-
 
 def logistic_train(X_train_transformed, X_test_transformed, y_train, y_test):
     # prompt: train lightgbm model on X_train_transformed
@@ -1472,12 +1494,25 @@ def get_best_lin_model(detn_admit_only, label):
     )
 
 
-def get_top_features(gbm, X_train_transformed, features_to_select):
-    import pandas as pd
+def get_top_features(
+    gbm: lgb.Booster, X_train_transformed: pd.DataFrame, features_to_select: int
+) -> List[str]:
+    """
+    Identifies and returns a list of the top features based on their importance
+    from a trained LightGBM model.
 
-    # prompt: get feature importance from gbm
+    Filters features with importance greater than 0 and returns the top
+    `features_to_select` features by importance.
+
+    Args:
+        gbm: A trained LightGBM Booster model object.
+        X_train_transformed: The transformed training data DataFrame with feature names.
+        features_to_select: The number of top features to select.
+
+    Returns:
+        A list of strings representing the names of the top features.
+    """
     # Get feature importances from the trained LightGBM model
-    # feature_importances = gbm.feature_importance()
     feature_importances = gbm.feature_importances_
 
     # Get feature names
@@ -1485,56 +1520,81 @@ def get_top_features(gbm, X_train_transformed, features_to_select):
 
     # Create a DataFrame for better visualization
     feature_importance_df = pd.DataFrame(
-        {"Feature": feature_names, "Importance": feature_importances}
+        {'Feature': feature_names, 'Importance': feature_importances}
     )
 
     # Sort the DataFrame by importance in descending order
-    feature_importance_df = feature_importance_df.sort_values(by="Importance", ascending=False)
-    # prompt: get the top 100 features with importance > 0
+    feature_importance_df = feature_importance_df.sort_values(
+        by='Importance', ascending=False
+    )
 
     # Filter features with importance greater than 0
-    important_features = feature_importance_df[feature_importance_df["Importance"] > 0]
+    important_features = feature_importance_df[feature_importance_df['Importance'] > 0]
 
-    # Get the top 100 features
-    top_100_features = important_features.head(features_to_select)
+    # Get the top N features
+    top_n_features = important_features.head(features_to_select)
 
-    top_features = top_100_features["Feature"].to_list()
+    top_features = top_n_features['Feature'].to_list()
     return top_features
 
+def lightgbm_train(
+    X_train_transformed: pd.DataFrame,
+    X_test_transformed: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+) -> Tuple[lgb.Booster, float, float, List[str], float]:
+    """
+    Trains a LightGBM classifier, evaluates its performance, and identifies important features.
 
-def lightgbm_train(X_train_transformed, X_test_transformed, y_train, y_test):
-    # prompt: train lightgbm model on X_train_transformed
-    import lightgbm as lgb
-    import pandas as pd
-    from sklearn.metrics import accuracy_score, f1_score
+    Args:
+        X_train_transformed: The transformed training data DataFrame.
+        X_test_transformed: The transformed testing data DataFrame.
+        y_train: The training target variable Series.
+        y_test: The testing target variable Series.
 
-    # gbm = lgb.LGBMClassifier()
-    gbm = lgb.LGBMClassifier(objective="binary", metric="binary_logloss", verbosity=-1)
+    Returns:
+        A tuple containing:
+            - gbm: The trained LightGBM Booster model object.
+            - f1_scored: The F1 score of the model on the test set.
+            - aic: The AIC score of the model on the test set.
+            - top_features: A list of feature names with importance greater than 0.
+            - avg_precision: The average precision score of the model on the test set.
+    """
+    from sklearn.metrics import f1_score,average_precision_score
+
+    gbm = lgb.LGBMClassifier(objective='binary', metric='binary_logloss', verbosity=-1)
     # Train the LightGBM model
     gbm.fit(X_train_transformed, y_train)
     # Make predictions on the test set
     y_pred = gbm.predict(X_test_transformed)
     # Convert probabilities to class labels (e.g. 0 or 1)
-    y_pred_class = [1 if prob > 0.5 else 0 for prob in y_pred]  # Adjust threshold as needed
+    y_pred_class = [
+        1 if prob > 0.5 else 0 for prob in y_pred
+    ]  # Adjust threshold as needed
     # Evaluate the model (example metrics)
-    accuracy = accuracy_score(y_test, y_pred_class)
-    # print(f"Accuracy: {accuracy}")
     f1_scored = f1_score(y_test, y_pred_class)
-    # print(f"f1: {f1_scored}")
+    y_scores = gbm.predict_proba(X_test_transformed)[
+        :, 1
+    ]  # Assuming gbm is your trained model and you get probabilities for the positive class (class 1)
+    # Calculate average precision score
+    avg_precision = average_precision_score(y_test, y_scores)
+
     # Get feature importances from the trained LightGBM model
     feature_importances = gbm.feature_importances_
     # Get feature names
     feature_names = X_train_transformed.columns
     # Create a DataFrame for better visualization
     feature_importance_df = pd.DataFrame(
-        {"Feature": feature_names, "Importance": feature_importances}
+        {'Feature': feature_names, 'Importance': feature_importances}
     )
-    feature_importance_df = feature_importance_df.sort_values(by="Importance", ascending=False)
+    feature_importance_df = feature_importance_df.sort_values(
+        by='Importance', ascending=False
+    )
     # Filter features with importance greater than 0
-    important_features = feature_importance_df[feature_importance_df["Importance"] > 0]
-    top_features = important_features["Feature"].to_list()
+    important_features = feature_importance_df[feature_importance_df['Importance'] > 0]
+    top_features = important_features['Feature'].to_list()
     aic = get_aic(gbm, X_test_transformed, y_test)
-    return gbm, f1_scored, aic, top_features
+    return gbm, f1_scored, aic, top_features, avg_precision
 
 
 def drop_columns(detn):
@@ -1694,39 +1754,85 @@ def explain_logreg(idx, test_labelled_logreg, label):
 
 
 def select_features(
-    gbm,
-    X_train_transformed_top,
-    X_test_transformed_top,
-    y_train,
-    y_test,
-    max_features,
-    min_features,
-    step,
-):
-    import numpy as np
-    import pandas as pd
+    gbm: lgb.Booster,
+    X_train_transformed_top: pd.DataFrame,
+    X_test_transformed_top: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+    max_features: int,
+    min_features: int,
+    step: int,
+) -> Tuple[lgb.Booster, np.ndarray, pd.DataFrame, float, dict]:
+    """
+    Selects the best features for a LightGBM model based on AIC and trains
+    models with varying numbers of top features.
 
+    Iteratively selects a decreasing number of top features based on initial
+    feature importance and trains a LightGBM model. It keeps track of the
+    best model and features based on the AIC score.
+
+    Args:
+        gbm: An initial trained LightGBM Booster model object used to get
+             initial feature importances.
+        X_train_transformed_top: The transformed training data DataFrame,
+                                 potentially already subsetted.
+        X_test_transformed_top: The transformed testing data DataFrame,
+                                potentially already subsetted.
+        y_train: The training target variable Series.
+        y_test: The testing target variable Series.
+        max_features: The maximum number of top features to start with.
+        min_features: The minimum number of top features to end with.
+        step: The step size for decreasing the number of features.
+
+    Returns:
+        A tuple containing:
+            - best_gbm: The trained LightGBM Booster model with the best AIC.
+            - best_features: A numpy array of the feature names for the best model.
+            - results_df: A Pandas DataFrame summarizing the performance (avg_precision,
+                          f1_score, AIC, num_features) for each feature subset size.
+            - best_aic: The lowest AIC score achieved.
+            - features: A dictionary where keys are the number of features tested
+                        and values are the corresponding feature names.
+    """
     results4 = []
     features = {}
-    best_aic = 1000000
+    best_aic = float('inf')  # Initialize with a large value
+    best_gbm = None
+    best_features = None
+
     for n in np.arange(max_features, min_features, step):
-        top_n_features = get_top_features(gbm, X_train_transformed_top, features_to_select=n)
-        X_train_transformed_top = X_train_transformed_top[top_n_features].copy()
-        X_test_transformed_top = X_test_transformed_top[top_n_features].copy()
-        # print(n,len(top_n_features),X_train_transformed_top.shape)
-        gbm, f1_scored, aic, top_features = lightgbm_train(
-            X_train_transformed_top, X_test_transformed_top, y_train, y_test
+        top_n_features = get_top_features(
+            gbm, X_train_transformed_top, features_to_select=n
         )
-        # print(len(gbm.feature_name_))
-        data = {"f1_score": f1_scored, "AIC": aic, "num_features": len(gbm.feature_name_)}
-        features[n] = gbm.feature_names_in_
+
+        # Ensure the selected features exist in the DataFrames before subsetting
+        current_features = [col for col in top_n_features if col in X_train_transformed_top.columns]
+        if not current_features:
+          continue # Skip if no selected features are found
+
+        X_train_current = X_train_transformed_top[current_features].copy()
+        X_test_current = X_test_transformed_top[current_features].copy()
+
+        # print(n,len(current_features),X_train_current.shape)
+        gbm_current, f1_scored, aic, top_features_current, avg_precision = lightgbm_train(
+            X_train_current, X_test_current, y_train, y_test
+        )
+        # print(len(gbm_current.feature_name_))
+        data = {
+            'avg_precision': avg_precision,
+            'f1_score': f1_scored,
+            'AIC': aic,
+            'num_features': len(gbm_current.feature_name_),
+        }
+        features[n] = gbm_current.feature_names_in_
         results4.append(data)
+
         if aic < best_aic:
             best_aic = aic
-            best_features = gbm.feature_names_in_
-            best_gbm = gbm
-    return best_gbm, best_features, pd.DataFrame(results4), best_aic, features
+            best_features = gbm_current.feature_names_in_
+            best_gbm = gbm_current
 
+    return best_gbm, best_features, pd.DataFrame(results4), best_aic, features
 
 def strip_column_names(top_features):
     # prompt: for each column in top_features remove the period and the text after the period
