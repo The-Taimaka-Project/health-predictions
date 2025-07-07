@@ -42,8 +42,8 @@ df_geodata = do_storage.read_csv(ETL_DIR + "patient_geodata_all.csv")
 # avoid column name collision with admit_current
 df_geodata.drop(columns=['settlement'],inplace=True)
 
-MATCHED_SETTLEMENT_SCORE_CUTOFF = 70
-# filter df_geodata on matched_settlement_score > 70 as that's the best correlation to death
+MATCHED_SETTLEMENT_SCORE_CUTOFF = 75
+# filter df_geodata on matched_settlement_score > 75 as that's the best correlation to death
 df_geodata = df_geodata[df_geodata['matched_settlement_score'] > MATCHED_SETTLEMENT_SCORE_CUTOFF].copy()
 
 
