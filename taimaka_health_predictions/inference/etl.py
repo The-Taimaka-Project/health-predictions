@@ -36,6 +36,17 @@ reader_writer = EtlReaderWriter()
 # Call the read method method
 current, admit, weekly, raw, weekly_raw, itp, relapse, mh = reader_writer.read_data()
 
+# get imputed latitude, longitude
+df_geodata = do_storage.read_csv(ETL_DIR + "patient_geodata_all.csv")
+
+# avoid column name collision with admit_current
+df_geodata.drop(columns=['settlement'],inplace=True)
+
+MATCHED_SETTLEMENT_SCORE_CUTOFF = 70
+# filter df_geodata on matched_settlement_score > 70 as that's the best correlation to death
+df_geodata = df_geodata[df_geodata['matched_settlement_score'] > MATCHED_SETTLEMENT_SCORE_CUTOFF].copy()
+
+
 
 logger.debug(f"weekly_raw shape: {weekly_raw.shape}")
 logger.debug(f"weekly_raw null sums for pid, todate, end_time:\n{weekly_raw[['pid', 'todate', 'end_time']].isnull().sum()}")
@@ -62,10 +73,13 @@ if (not duplicate_pids_admit.empty):
     logger.warn(f"Duplicate pids found in 'admit' DataFrame: {duplicate_pids_admit['pid'].unique()}")
 
 
+
 # prompt: if not duplicate_pids_admit.empty throw a runtime exception
 if (not duplicate_pids_admit.empty) & FAIL_MODE:
     raise RuntimeError("Duplicate pids found in 'admit' DataFrame.")
 
+# oin df_geodata to admit on pid
+admit = pd.merge(admit, df_geodata, on='pid', how='left')
 
 # Identify columns with unique values [True, nan, False] and print null count
 def find_3val_bool(df):
