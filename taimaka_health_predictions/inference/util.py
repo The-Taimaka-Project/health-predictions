@@ -8,7 +8,8 @@
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+import statsmodels.api as sm
 
 
 
@@ -404,12 +405,27 @@ def remove_anthros_keep_wk1_muac(detn, keep_wk1_muac=False):
     detn.drop(columns=[col for col in detn.columns if "itpotp" in col], inplace=True)
 
 
-def infer_phq_score(admit_current_mh, admit_current, detn):
-    import pandas as pd
-    import statsmodels.api as sm
+def infer_phq_score(
+    admit_current_mh: pd.DataFrame, admit_current: pd.DataFrame, detn: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Infers missing PHQ scores using a linear regression model using "age_takewater", "rainy_season" as regressors
+    and fills missing
+    values in both admit_current and detn DataFrames.
 
+    Args:
+        admit_current_mh (pd.DataFrame): DataFrame containing mental health data,
+                                       including 'pid' and 'phq_score'.
+        admit_current (pd.DataFrame): DataFrame containing current admission data,
+                                    including 'pid', 'age_takewater', and 'rainy_season'.
+        detn (pd.DataFrame): DataFrame to which the inferred PHQ scores will be added,
+                           must contain 'pid'.
+
+    Returns:
+        pd.DataFrame: The detn DataFrame with an added 'phq_score' column,
+                      containing either the original or inferred PHQ scores.
+    """
     df = admit_current_mh[["age_takewater", "rainy_season", "phq_score"]].copy()
-
     df.dropna(inplace=True)
 
     # Split the data into independent variables (X) and the dependent variable (y)
@@ -422,19 +438,27 @@ def infer_phq_score(admit_current_mh, admit_current, detn):
     # Fit the linear regression model
     model = sm.OLS(y, X).fit()
 
+    # Predict PHQ scores for the admit_current data
     admit_current["phq_predicted"] = model.predict(
         sm.add_constant(admit_current[["age_takewater", "rainy_season"]])
     )
 
+    # Merge original PHQ scores from admit_current_mh into admit_current
     admit_current = pd.merge(
         admit_current, admit_current_mh[["pid", "phq_score"]], on="pid", how="left"
     )
 
+    # Fill missing PHQ scores in admit_current with predicted values
     admit_current["phq_score"].fillna(admit_current["phq_predicted"], inplace=True)
-    admit_current["phq_score"].fillna(admit_current_mh["phq_score"].mean(), inplace=True)
-    detn = pd.merge(detn, admit_current[["pid", "phq_score"]], on="pid", how="left")
-    return detn
 
+    # Fill any remaining missing PHQ scores with the mean of the original scores
+    mean_phq_score = admit_current_mh["phq_score"].mean()
+    admit_current["phq_score"].fillna(mean_phq_score, inplace=True)
+
+    # Merge the filled PHQ scores into the detn DataFrame
+    detn = pd.merge(detn, admit_current[["pid", "phq_score"]], on="pid", how="left")
+
+    return detn
 
 def find_collinear_columns(df, threshold=0.99, col_ct_threshold=100):
     """
