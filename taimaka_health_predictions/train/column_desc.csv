@@ -264,3 +264,6 @@ wfh_diff_ratio_rate,latest/last weight for height minus first wfh divided by fir
 hl_rsquared,r-squared value of the height/length trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
 muac_trend,muac linear regression trend line slope through all wfh visit points up to appropriate deterioration type or last visit,
 wkn_hfaz,height for age (hfa) z-score at nth most recent visit,
+wkn_lean_season_weekly,"lean season (June - August) for nth most recent visit.  the lean season, which is the period between harvests. This period is characterized by food shortages and rising food prices as the previous harvest's stocks deplete. It's the time when households rely on various coping strategies to meet their food needs until the next harvest, often in September",
+weekly_min_wfh,minimum weight for height over all the weekly visits,
+wkn_pull_authoutreaches_weekly,"once(pulldata('metadata', 'otps_auth_outreaches', 'key', 'key'))",weekly_raw
