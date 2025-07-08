@@ -274,3 +274,12 @@ hl_diff_ratio,"last/latest height/length minus first hl divided by first hl.  Ex
 wkn_weight_diff_weekly,weight difference of nth most recent visit from weight of prior visit ,
 wfa_rsquared,r-squared value of the weight for age (wfa) trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent (linear) trend,
 weight_diff_ratio_rate,latest/last weight minus first wfh divided by first weight divided by the number of days in the program.  So weight change divided by starting weight divided by days.  Days in program would be last - first.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+age_takewater,"At what age, in months, did the patient start taking water? (admittance)",raw
+duration_days,"number of days from admittance to last visit date or dismissal date or first deterioration event date, depending on the patient's status",
+b_eagerdrink,Is the child eager to drink or abnormally thirsty? At admittance,raw
+pp_app,"appetite test at admittance, if(${aptest_result} != '', if(${aptest_result} = 'false', 'FAIL', 'PASS'), 'Not Conducted')",raw
+hfa,height divided by age at admittance,raw
+give_routamox,"should routamox be given at admittance? : if(${eff_ref_overall} = 'false' and ${maln_status} = 'sam' and ${mam_needsitp} = 'false' , 'true', 'false')",raw
+manual_receivingitp,Which ITP are you referring this child too? (at admittance),raw
+wfh_sam_threshold,"wfh less than negative 3 standard deviations at admittance: if(${wfh_error} != 'error', pulldata('wfh', 'sdNeg3', 'lookup', ${wfh_lookup_calc}), 'error')",raw
+lean_season_raw,was patient admitted during lean season (June - August)?,raw
