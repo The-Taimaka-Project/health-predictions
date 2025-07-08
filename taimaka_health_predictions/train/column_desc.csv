@@ -287,3 +287,6 @@ weekly_first_muac,muac at first weekly follow-up visit,weekly_raw
 wkn_wfa,weight divided by age at nth most recent visit,weekly_raw
 wkn_hfa,height divided by age at nth most recent visit,weekly_raw
 wkn_pt_weight_weekly,What is the weight of the caregiver AND the child in kg? (at nth most recent visit),weekly_raw
+latitude,latitude of the patient's settlement (imputed by matching settlement name with score of 75 or better),
+longitude,longitude of the patient's settlement (imputed by matching settlement name with score of 75 or better),
+elevation,elevation of the patient's settlement (imputed by matching settlement name with score of 75 or better),
