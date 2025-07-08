@@ -758,6 +758,46 @@ def get_missing_column_descriptions(
         column_desc2.loc[col] = [None, None]
     column_desc2.to_csv(doc_dir + COPIED_DESC)
 
+def get_feature_descriptions(autogluon_feature_importance: pd.DataFrame, column_desc: pd.DataFrame) -> Tuple[List[str], List[str]]:
+    """
+    Retrieves sorted feature names and their corresponding descriptions.
+
+    Args:
+        autogluon_feature_importance: DataFrame containing feature importance,
+                                      with index as feature names and a
+                                      column 'importance'.
+        column_desc: DataFrame containing feature descriptions, with index
+                     as feature names (possibly generalized, e.g., 'wkn'
+                     instead of 'wk1', 'wk2', 'wk3') and a column 'description'.
+
+    Returns:
+        A tuple containing:
+        - sorted_features: A list of feature names sorted by importance in
+                           descending order.
+        - feature_descriptions: A list of descriptions for the sorted features,
+                                aligned with sorted_features. Missing descriptions
+                                are filled with empty strings.
+    """
+    sorted_features: List[str] = autogluon_feature_importance.sort_values(
+        by="importance", ascending=False
+    ).index.tolist()
+
+    sorted_features_df: pd.DataFrame = pd.Series(sorted_features, name="feature").to_frame()
+
+    # Create a new column 'feature_n' by replacing 'wk1', 'wk2', 'wk3' with 'wkn'
+    sorted_features_df["feature_n"] = sorted_features_df["feature"].str.replace(
+        r"wk[1-3]", "wkn", regex=True
+    )
+
+    # Join with column_desc on the normalized feature name
+    merged_df: pd.DataFrame = sorted_features_df.join(column_desc, on="feature_n", how="left").fillna("")
+
+    # Extract the descriptions for the sorted features
+    feature_descriptions: List[str] = merged_df['description'].to_list()
+
+    return sorted_features, feature_descriptions
+  
+
 def merge_probabilities(
     pid_probabilities: pd.DataFrame,
     label: str,
