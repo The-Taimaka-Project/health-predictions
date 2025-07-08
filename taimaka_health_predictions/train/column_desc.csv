@@ -1,0 +1,260 @@
+﻿column,description,source
+admit_cat1_complications,number of category 1 complications at admission,
+admit_cat2_complications,number of category 2 complications at admission,
+age_takefamily,"upon admission: At what age, in months, did the patient start taking family food?",
+b_hascmslip,Had CM referral slip at admission,
+b_wast_admit,wasting at admittance,
+c_vcardloc,"Location of vaccination card, At home, lost, in hand, other",admit_processed
+calcdate,admittance date,admit_processed
+cat2_complications_weekly,count of category 2 complications over all the visits up to appropriate deterioration type,
+cg_age,caregiver age upon admittance,admit_processed
+cg_weight,caregiver weight upon admittance,
+enr_age,Age at CMAM enrolment (upon admittance),admit_processed
+estdist_home,estimated distance from home (at admission),
+glbsite,Site location pulled by the form from pre-configured username value on device,
+hfa_rsquared,r-squared value of the hfa trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
+hfaz_admit,hfa z-score upon admittance,
+hl_admit,height/length upon admittance,
+hl_diff_ratio_rate,last/latest height/length minus first hl divided by first hl divided by the number of days in the program.  So cm change per starting cm per day.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+hl_trend,height/length regression trend line slope through all hieight/length visit points up to appropriate deterioration type or last visit,
+household_adults,household adults (at admission),
+household_adults_slept_living_children_z,"Combined z-score for household_adults household_slept and living_children (if <0, the score is below average; if >0, the score is above average)",
+household_slept,"admittance household_slept, How many people slept in the caregiver's household last night?",
+living_children,living children upon admittance,
+muac,muac upon admittance,admit_processed
+muac_diff,the difference between the most recent (before deterioration) muac and the first visit's muac,
+muac_diff_ratio_rate,latest/last muac minus first muac divided by first muac divided by the number of days in the program.  So muac change per starting muac per day.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+muac_rsquared,r-squared value of the muac trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
+pt_weight,What is the weight of the caregiver AND the child in kg? (at admittance),
+rainy_season_admit,Admitted in rainy season (May-Oct),
+resp_rate,respiration rate at admission,
+submission_date,admittance submission date,
+temperature,patient's temperature upon admission,
+weekly_last_admit,last visit date,
+weight_trend,weight linear regression trend line slope through all weight visit points up to appropriate deterioration type or last visit,
+wfa,wfa upon admittance,
+wfa_diff_ratio_rate,latest/last weight for age minus first wfa divided by first wfa divided by the number of days in the program.  So wfa change per starting wfa per day.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+wfaz_admit,wfa z-score on admittance,
+wfh,wfh upon admittance,
+wfh_rsquared,r-squared value of the wfh trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
+wfh_trend,wfh linear regression trend line slope through all wfh visit points up to appropriate deterioration type or last visit,
+wfhz_admit,wfh z-score on admittance,
+wkn_age,age at nth most recent visit,
+wkn_b_wast,WAsting and STunted growth on nth most recent visit,
+wkn_calc_los,calc_los (calculated length of stay from pull los) for nth recent visit,
+wkn_calcdate_diff_weekly,different in visit dates from nth most recent visit to prior visit (should usually be 7),
+wkn_cat2_overall_weekly,cat2_overall boolean flag at nth most recent visit,
+wkn_cg_weight_weekly,caregiver weight at most recent visit,
+wkn_hfa_diff_rate,hfa difference of nth most recent visit from hfa of prior visit divided by the number of days since the prior visit (usually 7),
+wkn_hfa_diff_weekly,hfa difference of nth most recent visit from hfa of prior visit ,
+wkn_maln_status_weekly,malnutrition status at nth most recent visit,
+wkn_md_submitterid,submitter ID of nth most recent visit,admit_processed
+wkn_ms_muac_weekly,Malnutrition status by MUAC at nth most recent visit,
+wkn_muac,muac on nth most recent visit,admit_processed
+wkn_muac_diff_rate,muac difference of nth most recent visit from muac of prior visit divided by the number of days since the prior visit (usually 7),
+wkn_muac_diff_weekly,muac difference of nth most recent visit from muac of prior visit ,
+wkn_pull_lastms,last malnutrition stats at most recent visit,
+wkn_resp_rate_weekly,respiration rate at nth most recent visit,
+wkn_site,site on most recent weekly processed,admit_processed
+wkn_temperature_weekly,temperature at nth most recent visit,
+wkn_week,program week at nth most recent visit,admit_processed
+wkn_weight_diff_rate,weight difference of nth most recent visit from weight of prior visit divided by the number of days since the prior visit (usually 7),
+wkn_wfa_diff_rate,wfa difference of nth most recent visit from prior visit divided by the number of days since prior visit (usually 7),
+wkn_wfa_diff_weekly,wfa difference of nth most recent visit from wfa of prior visit ,
+wkn_wfaz,wfa z-score on nth most recent visit,
+wkn_wfh,wfh at nth most recent visit,
+wkn_wfh_diff_rate,wfh difference of second most recent visit from prior visit divided by the number of days since prior visit (usually 7),
+wkn_wfh_diff_weekly,wfh difference of nth most recent visit from wfh of prior visit ,
+wkn_wfhz,weight for height (wfh) z-score at nth most recent visit,
+autosite,ODK username Site location pulled by the form from pre-configured username value on device,admit_processed
+b_agedocument,Whether age is from a formal document ,admit_processed
+b_cgishoh,HoH is Caregiver Head of household (HoH) is caregiver,admit_processed
+b_defect_present,Presence of exclusion criteria Presence of condition that prompts exclusion from the CMAM program,admit_processed
+b_fatheralive,Vital status of child's father TRUE if the child's father is alive,admit_processed
+b_fracture_trauma,Presence of fracture or other forms of trauma ,admit_processed
+b_hastwin,Whether the child has a twin (living or deceased) ,admit_processed
+b_heightcheck,Whether the child is <110 cm ,admit_processed
+b_isvaxed,Ever vaccinated ,admit_processed
+b_knowsbday,Indicates whether the caregiver knows the child's date of birth Only asked if the caregiver does NOT have an official document stating the child's age,admit_processed
+b_mamneedsitp,MAM and needs hospitalization Children with MAM who are in need of hospitalization are referred to the general paediatric ward (not the ITP),admit_processed
+b_motheralive,Indicates vital status of child's mother ,admit_processed
+b_movenextvisit,"Indicates whether the next OTP visit date will be moved to a date other than 7 days after the current visit Visit dates may be adjusted due to holidays, outreach days, etc.",admit_processed
+b_needsitp,Indicates whether the child was referred to ITP ,admit_processed
+b_phoneconsent,Consent to receive phone calls TRUE if the child's caregiver has access to a phone number and has consented to receive calls about her child's care,admit_processed
+b_presented_emergency,"Presented at ITP with IMCI emergency sign Only filled in ITP - was child referred to ITP as an emergency case and is now being enrolled in ITP
+IMCI = integrated management of childhood illness
+Emergency signs are lethargy, unconciousness, convulsions (now or within last 24 hrs), other",admit_processed
+b_prevenr,Previously enrolled in the Taimaka CMAM program ,admit_processed
+b_reachcheck,Indicates whether the child appears to be too old (>5 years) by assessing whether the child can reach over their head and touch their opposite ear with their hand Only used if the child does not have age documentation,admit_processed
+b_referred_emergency,"Presented at OTP with IMCI emergency Results in immediate ITP referral, regardless of nutritional status and/or whether PID is assigned
+IMCI = integrated management of childhood illness
+Emergency signs are lethargy, unconciousness, convulsions (now or within last 24 hrs), other",admit_processed
+b_tooold,Too old for program  Indicates if child is too old to enrol in the program; children must be 1-59 months at the date of admission into the CMAM program,admit_processed
+b_twinalive,"Twin alive For children who are twins, indicates whether the twin is alive",admit_processed
+b_twinattended,"Twin present at health facility For children who are twins, indicates whether the twin is present at the health facility during the visit (i.e., to assess the twin's nutritional status). 
+Twins are treated as a pair; they recieve the same ration of therapeutic food (the highest ration goes to both twins, regardless of the 2nd twin's nutritional status); twins are referred to/from ITP together",admit_processed
+b_wasreferred,Effective ITP referral Indicates that the child was referred to ITP and that the referral was accepted by the caregiver/family,admit_processed
+backuplength,"Backup length measurement for very short children For children who are very short for their age (i.e., 2 years, but shorter than the lowest height value on the 2-5 year reference chart (WHO, 2006)), length is measured rather than height. ",admit_processed
+birthdate,"Birth date Birth date from official record (health record, birth certificate, etc.) or from caregiver recall. ",admit_processed
+c_cgrelationship,"Caregiver relationship to child Indicates whether the caregiver with the child at the health facility is the mother, grandmother, sister, father, neighbor, etc. ",admit_processed
+c_imci_emergency,"List of IMCI emergency signs List of selected IMCI emergency signs child presented with in OTP (not ITP). May be blank if did not present with emergency signs.
+IMCI = integrated management of childhood illness",admit_processed
+c_oedema,"Grade of nutritional oedema  Nutritional oedema starts from the feet and is bipedal (grade 1), then moves to the legs (grade 2), and generalizes to face and hand (grade 3). Assessed by pressing firmly on limbs for 3 seconds, then checking for indentations. ",admit_processed
+c_prevstatus,"Previous status For children previously treated in the CMAM program, indicates their previous status on exit from the program",admit_processed
+cg_sex,Caregiver sex ,admit_processed
+domhl,"Direction of measure Direction of measurement - whether height or length was taken
+The calculation of WHZ/WLZ differs depending on the child's age, sex, and whether length or height was measured.",admit_processed
+dose,"Dose of therapeutic food Number of sachets of RUTF (SAM, 6-59 months) or kilograms of Tom Brown (MAM, 6-59 months) (always 1.5 kg for Tom Brown). Typically for a 1-week period, but ration is adusted depending on number of days until next visit.",admit_processed
+dose_wtwin,"Dose of therapeutic food for twin Number of sachets of RUTF (SAM, 6-59 months) or kilograms of Tom Brown (MAM, 6-59 months) (always 1.5 kg for Tom Brown)",admit_processed
+enr_approxage,"Approximate age in months If birth date is not documented on a official document (health record, birth certificate) and the caregiver does not know the child's birth date, it is estimated using the recall method, in which the data collector using prominent events to estimate the date of birth. ",admit_processed
+enr_week,Enrolment week Week of program during which child was enrolled (calculated in weeks since program start),admit_processed
+finalhl,"Height/length in cm Child's height or length in cm, whichever was taken (see direction of measure)",admit_processed
+gave_al_act,Gave AL ACT (1st line treatment for malaria) 1st line malaria treatmetn is prescribed if the child as a positive rapid diagnostic test (RDT) for malaria,admit_processed
+gombe_lga,LGA of residence Local government area (LGA) is the administrative area between a state and a city/down - similar to a county in the US,admit_processed
+imci_emergency_other,"Other emergency sign Other IMCI emergency sign (other than unconciousness, lethargy, and convulsions)",admit_processed
+langpref,Language preference Caregiver's language preference for phone calls,admit_processed
+manual_nvdate,"Adjusted next visit date Date of next visit, as adjusted by the clinic staff member (i.e., due to holidays, travel, etc.)",admit_processed
+md_attachmentsexp,"Attachments expected Expected number of attachments submitted with ODK form (photos, recordings, etc.)",admit_processed
+md_attachmentspres,"Attachments present Number of attachments received when ODK form was submitted (photos, voice recordings, etc.)",admit_processed
+md_deviceid,Device ID ID of the phone on which the ODK form was filled out,admit_processed
+md_edits,Edits to ODK form Indicates wither edits have been made to the ODK form,admit_processed
+md_endtime,End time Metadata generated by ODK Collect - date + time form was saved + marked as finished,admit_processed
+md_reviewstate,"Review state Review state of ODK submission (rejected, has issues, approved). Marked in ODK Central.",admit_processed
+md_starttime,Start time Metadata generated by ODK Collect - date + time form was started,admit_processed
+md_status,Status ,admit_processed
+md_submissiondate,ODK Submission date ,admit_processed
+md_submitterid,ODK Submitter ID ,admit_processed
+md_submittername,ODK Submitter name ,admit_processed
+ms_muac,Malnutrition status by MUAC ,admit_processed
+ms_oedema,Malnutrition status by oedema ,admit_processed
+ms_overall,"Malnutrition status overall (by MUAC, oedema, and WFH/WFL) ",admit_processed
+ms_wfh,Malnutrition status by WFH/WFL ,admit_processed
+name,MUAC in cm ,admit_processed
+other_lga,LGA of residence (if not on standard list) ,admit_processed
+other_state,State of residence (if not on standard list) ,admit_processed
+phoneowner,Phone owner ,admit_processed
+pid,Patient ID ,admit_processed
+prev_pid,Previous patient ID Previous patient ID for patients who have enrolled in the program previously ,admit_processed
+prevenr_approx_end,Estimated end date of previous CMAM treatment ,admit_processed
+prevenr_approx_start,Estimated start date of previous CMAM treatment ,admit_processed
+rationweeks,Number of weeks the child has returned for an OTP visit Children are discharged as nonresponse after attending for 12 ration weeks without reaching nutritional recovery,admit_processed
+receiving_otp,"OTP receiving the referral from ITP OTP child will be discharged to from ITP, only filled when child is being enrolled in the ITP",admit_processed
+ref_g6u4kg,Early referral for <4kg and >6 months of age ,admit_processed
+ref_oedg3,Early referral for grade 3 oedema (+++) ,admit_processed
+ref_oedsam,Early referral for co-ocurring oedema and wasting  ,admit_processed
+ref_tsref,Early referral for being too small ,admit_processed
+ref_u6sam,Early referral for being SAM by WLZ and age <6 months ,admit_processed
+roundedhl,Rounded height/length Rounded height/length used to calculate MAM/SAM status from z-score tables (WHO 2006 reerence values),admit_processed
+ses_b_foodsecurity,Extreme food insecurity TRUE if any member of the household has gone >24 hours without eating (pulled from the HFIAS),admit_processed
+ses_care_decisionmaker,"Decision maker about child's health care Indicates whether the mother, father, mother and father together, or someone else makes health care decisions for the child",admit_processed
+ses_care_decisionmaker_specify,"Name of other decision maker about child's health care If other is selected, specifies who the decision maker is",admit_processed
+ses_drinkingwater,"Main source of drinking water for the family Main source of drinking water for the child's household, per caregiver report",admit_processed
+ses_edtype_father,"Education level of child's father Highest level of education completed by child's father, per caregiver report",admit_processed
+ses_edtype_mother,"Education level of child's mother Highest level of education completed by child's mother, per caregiver report",admit_processed
+ses_hh_adults,HH total adults Total number of adults whom the caregiver considers part of her household,admit_processed
+ses_hh_slept,HH total size Total number of people who slept in the child's household last night,admit_processed
+ses_livingchildren,Number of caregiver's living children Number of living children of the caregiver (not necessarily the child's mother),admit_processed
+ses_toilet,"Toilet facility for HH Main toilet facility available to the child's household, per caregiver report",admit_processed
+ses_walltype,"Type of wall in caregiver's house Proxy for SES; in general, from richest to poorest, would be: bricks, cement blocks, stone and cemen, stone with mud, covered mud, uncovered mud, bamboo with mud, zana, sacks/fabric, cardboard, no walls",admit_processed
+settlement,Settlement (village/community) of residence from a standard list Settlement caregiver is from (from multiple choice list),admit_processed
+settlement_other,Other settlement (village/community) of residence (not from standard list) Text entered when selecting 'other' in settlement,admit_processed
+sex,Child's sex ,admit_processed
+site,OTP facility name ,admit_processed
+site_type,Type of facility Whether site is OTP (outpatient) or ITP (inpatient),admit_processed
+staffmember,Staff member filling the ODK form (from list) ,admit_processed
+staffmember_other,Name of other staff member filling the ODK form (not in list) ,admit_processed
+state,State of residence ,admit_processed
+ts_assessed_malnstatus,Physician assessment of nutritional status Assessed maln status on advice of clinical authority if child was too small to calculate wfh z-score,admit_processed
+ts_assessed_needitp,Physician recommendation to to to ITP Assessment on advice of clinical authority whether too small child needs to go to ITP,admit_processed
+ttype,Ration type ,admit_processed
+tw_malnstatus,Malnutrition status (MS) of twin ,admit_processed
+tw_pid,PID of twin (if enrolled) ,admit_processed
+uuid,uuid ,admit_processed
+week,Program week ,admit_processed
+weight,Child's weight in kg ,admit_processed
+where_referred_emergency,ITP facility receiving the emergency referral ,admit_processed
+age,Child's age in months Child's age in months as calculated from ODK data at admission to the CMAM program.,current
+b_phoneconsent,Consent to receive phone calls TRUE if the child's caregiver has access to a phone number and has consented to receive calls about her child's care,current
+dischqualanthro,"Qualified anthropometrics for discharge TRUE if the child's anthropometrics meet the discharge criteria (MUAC >= 12.5 cm, WHZ/WLZ >= -2 SD, no oedema of any grade)",current
+langpref,Language preference Caregiver's language preference for phone calls,current
+los,"Length of stay in ration weeks Length of stay since enrolment in the CMAM program, in ration weeks",current
+movement_detail,Child's movement between OTP and ITP Indicates whether child is moving between OTP and ITP on the date the data were pulled (table updates every 3 hrs),current
+nv_date,"Next visit date Date of the child's next OTP visit; blank if no OTP visit is scheduled (i.e., child is in ITP or has exited the program)",current
+phoneowner,Phone owner Indicates whether the phone is owned by the caregiver (own) attending the CMAM program or by someone else (other),current
+pid,"Patient ID Patient identification number, assigned at admission to the CMAM program",current
+site,OTP facility name Name of the outpatient therapeutic program (OTP) closest to / most accessible to the child and caregiver,current
+status,"Child's status in the CMAM program After enrolment (assignment of a PID), all children are classified as Active. They are re-classified upon exit from the program. ",current
+status_date,Status date Date the child's status in the current table was recorded,current
+status_detail,"Child's detailed status More detail on the status of the child, which can be used to re-classify their status if they return to the program",current
+admit_date,Date of admission to the ITP Date the child arrived at the ITP,itp_roster
+age,Child's age in months Child's age as reported by caregiver or recorded on referral slip,itp_roster
+case_notes,"Case notes Notes on the case, as recorded by the ITP supervisor",itp_roster
+final_dx,Final diagnosis Child's final diagnosis after review by an ITP physician,itp_roster
+initial_dx,"Initial diagnosis Child's initial diagnosis by ITP staff on arrival to the facility, before physician review and lab investigations",itp_roster
+itp,ITP facility name Name of hospital where child was treated in the Inpatient Therapeutic Program (ITP),itp_roster
+los_days,"Length of stay in days Number of days the child stayed at the ITP, calculated by subtracting admit_date from outcome_date",itp_roster
+mgt_checked_folder,Management checked folder TRUE if someone from the management team reviewed the child's folder (medical record),itp_roster
+otp,OTP facility name Name of primary health care facility where child was treated in the Outpatient Therapeutic Program (OTP),itp_roster
+outcome,Outcome Child's outcome on discharge from the ITP,itp_roster
+outcome_date,Date of discharge from the ITP Date the child exited the ITP,itp_roster
+pid,"Patient ID Patient identification number, assigned at admission to the CMAM program",itp_roster
+ref_w_pid,Referred with PID Indicates whether a PID was assigned to the child before he/she was referred to the ITP,itp_roster
+sex,"Child's sex Child's sex, as observed by ITP staff",itp_roster
+autosite,ODK username Site location pulled by the form from pre-configured username value on device,weekly_processed
+b_discharged,Discharge as recovered TRUE if the child is discharged from the CMAM program as RECOVERED,weekly_processed
+b_dischargednr,Discharge as nonresponse TRUE if the child is discharged from the CMAM program as NOT RESPONDING TO TREAMENT,weekly_processed
+b_excluded,Excluded from CMAM program TRUE if the child is excluded from the program as ineligible,weekly_processed
+b_mamneedsitp,MAM and needs hospitalization Children with MAM who are in need of hospitalization are referred to the general paediatric ward (not the ITP),weekly_processed
+b_movenextvisit,"Indicates whether the next OTP visit date will be moved to a date other than 7 days after the current visit Visit dates may be adjusted due to holidays, outreach days, etc.",weekly_processed
+b_phoneconsent,Consent to receive phone calls TRUE if the child's caregiver has access to a phone number and has consented to receive calls about her child's care,weekly_processed
+b_referred_emergency,"Presented at OTP with IMCI emergency Results in immediate ITP referral, regardless of nutritional status and/or whether PID is assigned
+IMCI = integrated management of childhood illness
+Emergency signs are lethargy, unconciousness, convulsions (now or within last 24 hrs), other",weekly_processed
+b_wasreferred,Effective ITP referral Indicates that the child was referred to ITP and that the referral was accepted by the caregiver/family,weekly_processed
+backuplength,"Backup length measurement for very short children For children who are very short for their age (i.e., 2 years, but shorter than the lowest height value on the 2-5 year reference chart (WHO, 2006)), length is measured rather than height. ",weekly_processed
+domhl,"Direction of measure Direction of measurement - whether height or length was taken.
+The calculation of WHZ/WLZ differs depending on the child's age, sex, and whether length or height was measured.",weekly_processed
+dose,"Dose of therapeutic food Number of sachets of RUTF (SAM, 6-59 months) or kilograms of Tom Brown (MAM, 6-59 months) (always 1.5 kg for Tom Brown)",weekly_processed
+finalhl,"Height/length in cm Child's height or length in cm, whichever was taken (see direction of measure)",weekly_processed
+gave_aa_act,Gave AA ACT (2nd line treatment for malaria) 2nd line malaria treatment is prescribed if a child recieves 1st line treatment (AL ACT) but returns with persistent malaria symtpoms the following week,weekly_processed
+gave_al_act,Gave AL ACT (1st line treatment for malaria) 1st line malaria treatmetn is prescribed if the child as a positive rapid diagnostic test (RDT) for malaria,weekly_processed
+langpref,Language preference Caregiver's language preference for phone calls,weekly_processed
+manual_nvdate,"Adjusted next visit date Date of next visit, as adjusted by the clinic staff member (i.e., due to holidays, travel, etc.)",weekly_processed
+md_attachmentsexp,"Attachments expected Expected number of attachments submitted with ODK form (photos, recordings, etc.)",weekly_processed
+md_attachmentspres,"Attachments present Number of attachments received when ODK form was submitted (photos, voice recordings, etc.)",weekly_processed
+md_deviceid,Device ID ID of the phone on which the ODK form was filled out,weekly_processed
+md_edits,Edits to ODK form Indicates wither edits have been made to the ODK form,weekly_processed
+md_endtime,End time Metadata generated by ODK Collect - date + time form was saved + marked as finished,weekly_processed
+md_reviewstate,"Review state Review state of ODK submission (rejected, has issues, approved). Marked in ODK Central.",weekly_processed
+md_starttime,Start time Metadata generated by ODK Collect - date + time form was started,weekly_processed
+md_submissiondate,ODK Submission date ,weekly_processed
+md_submitterid,ODK Submitter ID ,weekly_processed
+md_submittername,ODK Submitter name ,weekly_processed
+ms_muac,Malnutrition status by MUAC ,weekly_processed
+ms_oedema,Malnutrition status by oedema ,weekly_processed
+ms_overall,"Malnutrition status overall (by MUAC, oedema, and WFH/WFL) ",weekly_processed
+ms_wfh,Malnutrition status by WFH/WFL ,weekly_processed
+phoneowner,Phone owner ,weekly_processed
+pid,Patient ID ,weekly_processed
+rationweeks,Number of weeks the child has returned for an OTP visit Children are discharged as nonresponse after attending for 12 ration weeks without reaching nutritional recovery,weekly_processed
+ses_b_foodsecurity,Extreme food insecurity TRUE if any member of the household has gone >24 hours without eating (pulled from the HFIAS),weekly_processed
+ses_care_decisionmaker,"Decision maker about child's health care Indicates whether the mother, father, mother and father together, or someone else makes health care decisions for the child",weekly_processed
+ses_care_decisionmaker_specify,"Name of other decision maker about child's health care If other is selected, specifies who the decision maker is",weekly_processed
+ses_drinkingwater,"Main source of drinking water for the family Main source of drinking water for the child's household, per caregiver report",weekly_processed
+ses_edtype_father,"Education level of child's father Highest level of education completed by child's father, per caregiver report",weekly_processed
+ses_edtype_mother,"Education level of child's mother Highest level of education completed by child's mother, per caregiver report",weekly_processed
+ses_hh_adults,HH total adults Total number of adults whom the caregiver considers part of her household,weekly_processed
+ses_hh_slept,HH total size Total number of people who slept in the child's household last night,weekly_processed
+ses_livingchildren,Number of caregiver's living children Number of living children of the caregiver (not necessarily the child's mother),weekly_processed
+ses_toilet,"Toilet facility for HH Main toilet facility available to the child's household, per caregiver report",weekly_processed
+ses_walltype,"Type of wall in caregiver's house Proxy for SES; in general, from richest to poorest, would be: bricks, cement blocks, stone and cemen, stone with mud, covered mud, uncovered mud, bamboo with mud, zana, sacks/fabric, cardboard, no walls",weekly_processed
+site,OTP facility name ,weekly_processed
+site_type,Type of facility ,weekly_processed
+staffmember,Staff member filling the ODK form (from list) ,weekly_processed
+staffmember_other,Name of other staff member filling the ODK form (not in list) ,weekly_processed
+ttype,Ration type ,weekly_processed
+uuid,uuid ,weekly_processed
+week,Program week ,weekly_processed
+weight,Child's weight in kg ,weekly_processed
+wkl_age,Child's age at a weekly visit (calculated from enr_age) ,weekly_processed
+b_muac_wfh,"  it is true if the child has co-occurring nutritional deficiencies. However, it's actually coded around muac < 11.5 and wfhz < -3 (so the child meets the definitely for severe acute malnutrition by both criteria). If either value (muac or wfhz) is missing, it should be NA",admit_processed
