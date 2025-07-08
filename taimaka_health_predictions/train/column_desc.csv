@@ -290,3 +290,4 @@ wkn_pt_weight_weekly,What is the weight of the caregiver AND the child in kg? (a
 latitude,latitude of the patient's settlement (imputed by matching settlement name with score of 75 or better),
 longitude,longitude of the patient's settlement (imputed by matching settlement name with score of 75 or better),
 elevation,elevation of the patient's settlement (imputed by matching settlement name with score of 75 or better),
+phq_score,"mental health quality score, scale of 1 to about 9, imputed for data before mh was gathered.  Infers missing PHQ scores using a linear regression model in util method infer_phq_score using ""age_takewater"", ""rainy_season"" as regressors",
