@@ -269,3 +269,5 @@ weekly_min_wfh,minimum weight for height over all the weekly visits,
 wkn_pull_authoutreaches_weekly,"once(pulldata('metadata', 'otps_auth_outreaches', 'key', 'key'))",weekly_raw
 cat1_complications_weekly,total number of category 1 complications across all the weekly visits (not a new cat1 but same as cat1 upon admission),weekly_raw
 hfa_trend,height for age (hfa) linear regression trend line slope through all wfh visit points up to appropriate deterioration type or last visit,
+wkn_hl_diff_weekly,hl (height/length) difference of nth most recent visit from hl of prior visit ,
+hl_diff_ratio,"last/latest height/length minus first hl divided by first hl.  Expressed as a percentage, gain normalized by beginning hl.",
