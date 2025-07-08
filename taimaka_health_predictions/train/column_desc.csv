@@ -1,4 +1,4 @@
-﻿column,description,source
+column,description,source
 admit_cat1_complications,number of category 1 complications at admission,
 admit_cat2_complications,number of category 2 complications at admission,
 age_takefamily,"upon admission: At what age, in months, did the patient start taking family food?",
@@ -15,7 +15,7 @@ glbsite,Site location pulled by the form from pre-configured username value on d
 hfa_rsquared,r-squared value of the hfa trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
 hfaz_admit,hfa z-score upon admittance,
 hl_admit,height/length upon admittance,
-hl_diff_ratio_rate,last/latest height/length minus first hl divided by first hl divided by the number of days in the program.  So cm change per starting cm per day.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+hl_diff_ratio_rate,last/latest height/length minus first hl divided by first hl divided by the number of days in the program.  So cm change divided by starting cm divided by days.  Days in program would be last - first.  Last would the last visit or the last visit up to the appropriate deterioration type.,
 hl_trend,height/length regression trend line slope through all hieight/length visit points up to appropriate deterioration type or last visit,
 household_adults,household adults (at admission),
 household_adults_slept_living_children_z,"Combined z-score for household_adults household_slept and living_children (if <0, the score is below average; if >0, the score is above average)",
@@ -23,7 +23,7 @@ household_slept,"admittance household_slept, How many people slept in the caregi
 living_children,living children upon admittance,
 muac,muac upon admittance,admit_processed
 muac_diff,the difference between the most recent (before deterioration) muac and the first visit's muac,
-muac_diff_ratio_rate,latest/last muac minus first muac divided by first muac divided by the number of days in the program.  So muac change per starting muac per day.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+muac_diff_ratio_rate,latest/last muac minus first muac divided by first muac divided by the number of days in the program.  So muac change divided by starting muac divided by days.  Days in program would be last - first.  Last would the last visit or the last visit up to the appropriate deterioration type.,
 muac_rsquared,r-squared value of the muac trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
 pt_weight,What is the weight of the caregiver AND the child in kg? (at admittance),
 rainy_season_admit,Admitted in rainy season (May-Oct),
@@ -33,7 +33,7 @@ temperature,patient's temperature upon admission,
 weekly_last_admit,last visit date,
 weight_trend,weight linear regression trend line slope through all weight visit points up to appropriate deterioration type or last visit,
 wfa,wfa upon admittance,
-wfa_diff_ratio_rate,latest/last weight for age minus first wfa divided by first wfa divided by the number of days in the program.  So wfa change per starting wfa per day.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+wfa_diff_ratio_rate,latest/last weight for age minus first wfa divided by first wfa divided by the number of days in the program.  So wfa change divided by starting wfa divided by days.  Days in program would be last - first.  Last would the last visit or the last visit up to the appropriate deterioration type.,
 wfaz_admit,wfa z-score on admittance,
 wfh,wfh upon admittance,
 wfh_rsquared,r-squared value of the wfh trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
@@ -257,4 +257,10 @@ uuid,uuid ,weekly_processed
 week,Program week ,weekly_processed
 weight,Child's weight in kg ,weekly_processed
 wkl_age,Child's age at a weekly visit (calculated from enr_age) ,weekly_processed
-b_muac_wfh,"  it is true if the child has co-occurring nutritional deficiencies. However, it's actually coded around muac < 11.5 and wfhz < -3 (so the child meets the definitely for severe acute malnutrition by both criteria). If either value (muac or wfhz) is missing, it should be NA",admit_processed
+b_muac_wfh,"it is true if the child has co-occurring nutritional deficiencies. However, it's actually coded around muac < 11.5 and wfhz < -3 (so the child meets the definitely for severe acute malnutrition by both criteria). If either value (muac or wfhz) is missing, it should be NA",admit_processed
+wkn_rainy_season_weekly,rainy season (May-Oct) for nth most recent visit,weekly_processed
+weight_rsquared,r-squared value of the weight trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
+wfh_diff_ratio_rate,latest/last weight for height minus first wfh divided by first wfh divided by the number of days in the program.  So wfh change divided by starting divided by days.  Days in program would be last - first.  Last would the last visit or the last visit up to the appropriate deterioration type.,
+hl_rsquared,r-squared value of the height/length trend over all the patient's visits or up to the specific deterioration type.  Higher value means more consistent trend,
+muac_trend,muac linear regression trend line slope through all wfh visit points up to appropriate deterioration type or last visit,
+wkn_hfaz,height for age (hfa) z-score at nth most recent visit,
