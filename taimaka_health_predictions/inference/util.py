@@ -2401,7 +2401,6 @@ def plot_anthros(
     # ax.legend()
     plt.show()
 
-import pandas as pd
 def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,drop_weight: bool = True,drop_height: bool = True,columns_to_keep: set = {},columns_to_explicitly_delete: set = {}) -> pd.DataFrame:
   """
   Drops columns from a pandas DataFrame based on criteria related to outcome variables
@@ -2423,6 +2422,7 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   columns_to_delete = {col for col in detn.columns if 'interpolated' in col}
   # could be caused by poor (or good) weight gain
   columns_to_delete.update({col for col in detn.columns if 'sachets' in col})
+  columns_to_delete.update({col for col in detn.columns if 'outreaches' in col})
   columns_to_delete.update({col for col in detn.columns if 'receivingitp_filter' in col})
   columns_to_delete.update({col for col in detn.columns if 'discharge' in col})
   columns_to_delete.update({col for col in detn.columns if 'dose' in col})
