@@ -283,3 +283,7 @@ give_routamox,"should routamox be given at admittance? : if(${eff_ref_overall} =
 manual_receivingitp,Which ITP are you referring this child too? (at admittance),raw
 wfh_sam_threshold,"wfh less than negative 3 standard deviations at admittance: if(${wfh_error} != 'error', pulldata('wfh', 'sdNeg3', 'lookup', ${wfh_lookup_calc}), 'error')",raw
 lean_season_raw,was patient admitted during lean season (June - August)?,raw
+weekly_first_muac,muac at first weekly follow-up visit,weekly_raw
+wkn_wfa,weight divided by age at nth most recent visit,weekly_raw
+wkn_hfa,height divided by age at nth most recent visit,weekly_raw
+wkn_pt_weight_weekly,What is the weight of the caregiver AND the child in kg? (at nth most recent visit),weekly_raw
