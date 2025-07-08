@@ -8,7 +8,9 @@
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+import statsmodels.api as sm
+
 
 
 class EtlReaderWriter:
@@ -403,12 +405,27 @@ def remove_anthros_keep_wk1_muac(detn, keep_wk1_muac=False):
     detn.drop(columns=[col for col in detn.columns if "itpotp" in col], inplace=True)
 
 
-def infer_phq_score(admit_current_mh, admit_current, detn):
-    import pandas as pd
-    import statsmodels.api as sm
+def infer_phq_score(
+    admit_current_mh: pd.DataFrame, admit_current: pd.DataFrame, detn: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Infers missing PHQ scores using a linear regression model using "age_takewater", "rainy_season" as regressors
+    and fills missing
+    values in both admit_current and detn DataFrames.
 
+    Args:
+        admit_current_mh (pd.DataFrame): DataFrame containing mental health data,
+                                       including 'pid' and 'phq_score'.
+        admit_current (pd.DataFrame): DataFrame containing current admission data,
+                                    including 'pid', 'age_takewater', and 'rainy_season'.
+        detn (pd.DataFrame): DataFrame to which the inferred PHQ scores will be added,
+                           must contain 'pid'.
+
+    Returns:
+        pd.DataFrame: The detn DataFrame with an added 'phq_score' column,
+                      containing either the original or inferred PHQ scores.
+    """
     df = admit_current_mh[["age_takewater", "rainy_season", "phq_score"]].copy()
-
     df.dropna(inplace=True)
 
     # Split the data into independent variables (X) and the dependent variable (y)
@@ -421,19 +438,27 @@ def infer_phq_score(admit_current_mh, admit_current, detn):
     # Fit the linear regression model
     model = sm.OLS(y, X).fit()
 
+    # Predict PHQ scores for the admit_current data
     admit_current["phq_predicted"] = model.predict(
         sm.add_constant(admit_current[["age_takewater", "rainy_season"]])
     )
 
+    # Merge original PHQ scores from admit_current_mh into admit_current
     admit_current = pd.merge(
         admit_current, admit_current_mh[["pid", "phq_score"]], on="pid", how="left"
     )
 
+    # Fill missing PHQ scores in admit_current with predicted values
     admit_current["phq_score"].fillna(admit_current["phq_predicted"], inplace=True)
-    admit_current["phq_score"].fillna(admit_current_mh["phq_score"].mean(), inplace=True)
-    detn = pd.merge(detn, admit_current[["pid", "phq_score"]], on="pid", how="left")
-    return detn
 
+    # Fill any remaining missing PHQ scores with the mean of the original scores
+    mean_phq_score = admit_current_mh["phq_score"].mean()
+    admit_current["phq_score"].fillna(mean_phq_score, inplace=True)
+
+    # Merge the filled PHQ scores into the detn DataFrame
+    detn = pd.merge(detn, admit_current[["pid", "phq_score"]], on="pid", how="left")
+
+    return detn
 
 def find_collinear_columns(df, threshold=0.99, col_ct_threshold=100):
     """
@@ -502,10 +527,22 @@ def explain_gbm_model(gbm5, detn5, idx, iloc, gbm_features, label):
     shap.plots.waterfall(exp2)  # Pass the Explanation object to waterfall plot
 
 
-def split_detn_new_onset_medical_complication(detn, label):
-    import pandas as pd
-    from taimaka_health_predictions.utils.globals import logger
+def split_detn_new_onset_medical_complication(detn: pd.DataFrame, label: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Splits the input DataFrame into four subsets based on weekly data availability.
 
+    Args:
+        detn (pd.DataFrame): The input DataFrame containing patient data with weekly columns.
+        label (str): The target label column name (not used in the current implementation).
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]: A tuple containing four DataFrames:
+            - detn_admit_only: Rows with only admission data (wk1, wk2, wk3 dates are null).
+            - detn_wk1_only: Rows with wk1 data available, but wk2 and wk3 dates are null.
+            - detn_wk2: Rows with wk1 and wk2 data available, but wk3 date is null.
+            - detn_wk3: Rows with wk1, wk2, and wk3 data available.
+    """
+    from taimaka_health_predictions.utils.globals import logger
     # split detn into 4 very different subsets:
     # Use .copy() to ensure detn_admit_only is a copy, not a view
     detn_admit_only = detn[
@@ -516,7 +553,6 @@ def split_detn_new_onset_medical_complication(detn, label):
     cat1_cols = [col for col in detn.columns if col.startswith("y_")]
     # Use .loc to avoid chained indexing and to fill na values
     detn_admit_only.loc[:, cat1_cols] = detn_admit_only.loc[:, cat1_cols].fillna(0)
-
     # prompt: rows where  detn[detn['wk2_calcdate_weekly'].isnull()] and pid not in detn_admit_only['pid']
     # Use .copy() to ensure detn_wk1_only is a copy, not a view
     detn_wk1_only = detn[
@@ -524,7 +560,6 @@ def split_detn_new_onset_medical_complication(detn, label):
         & (detn["wk2_calcdate_weekly"].isnull())
         & (detn["wk3_calcdate_weekly"].isnull())
     ].copy()
-
     # prompt: rows where  detn[detn['wk3_calcdate_weekly'].isnull()] and pid not in detn_admit_only['pid'] and pid not in detn_wk1_only
     # Use .copy() to ensure detn_wk2 is a copy, not a view
     detn_wk2 = detn[
@@ -532,7 +567,6 @@ def split_detn_new_onset_medical_complication(detn, label):
         & (detn["wk2_calcdate_weekly"].notnull())
         & (detn["wk3_calcdate_weekly"].isnull())
     ].copy()
-
     # prompt: rows where  detn[detn['wk3_calcdate_weekly'].isnull()] and pid not in detn_admit_only['pid'] and pid not in detn_wk1_only
     # Use .copy() to ensure detn_wk3 is a copy, not a view
     detn_wk3 = detn[
@@ -540,59 +574,21 @@ def split_detn_new_onset_medical_complication(detn, label):
         & (detn["wk2_calcdate_weekly"].notnull())
         & (detn["wk1_calcdate_weekly"].notnull())
     ].copy()
-
     # prompt: drop all columns in detn_admit_only,detn_wk2,detn_wk3 that are for subsequent weeks, even if they're null,
     # just to ensure that no future leaks into present
+    wk1_cols = [col for col in detn_admit_only.columns if "_wk1" in col or "_wk2" in col or "_wk3" in col]
+    detn_admit_only = detn_admit_only.drop(columns=wk1_cols)
 
-    wk1_cols = [col for col in detn.columns if col.startswith("wk1")]
-    wk2_cols = [col for col in detn.columns if col.startswith("wk2")]
-    wk3_cols = [col for col in detn.columns if col.startswith("wk3")]
+    wk2_cols_to_drop = [col for col in detn_wk1_only.columns if "_wk2" in col or "_wk3" in col]
+    detn_wk1_only = detn_wk1_only.drop(columns=wk2_cols_to_drop)
 
-    # Drop columns in detn_admit_only that start with wk1 or wk2 or wk3
-    detn_admit_only.drop(columns=wk1_cols, inplace=True)
-    detn_admit_only.drop(columns=wk2_cols, inplace=True)
-    detn_admit_only.drop(columns=wk3_cols, inplace=True)
-    # b_needsitp = 'indicates whether child was referred to an ITP', may be caused by complication
-    detn_admit_only.drop(columns="b_needsitp", inplace=True)
-    # early referrals may be caused by complication
-    detn_admit_only.drop(
-        columns=[col for col in detn.columns if col.startswith("ref_")], inplace=True
-    )
+    wk3_cols_to_drop = [col for col in detn_wk2.columns if "_wk3" in col]
+    detn_wk2 = detn_wk2.drop(columns=wk3_cols_to_drop)
 
-    # Filter detn_admit_only where the label is 0
-    detn_admit_only_label_0 = detn_admit_only[detn_admit_only[label] == 0].copy()
+    # No columns to drop for detn_wk3 as it represents the final week
 
-    # Get the columns where all values are null for the filtered data
-    null_columns = detn_admit_only_label_0.columns[detn_admit_only_label_0.isnull().all()].to_list()
-    # remove them, otherwise the model will just key on them to find label == 1
-    cols_to_drop = list(
-        set(null_columns) - set(cat1_cols)
-    )  # keep y columns as they won't be used to predict
-    detn_admit_only.drop(columns=cols_to_drop, inplace=True)
-
-    detn_wk1_only.drop(columns=wk2_cols, inplace=True)
-    detn_wk1_only.drop(columns=wk3_cols, inplace=True)
-    # rsquared meaningless for single row patients
-    detn_wk1_only.drop(
-        columns=[col for col in detn_wk1_only.columns if col.endswith("rsquared")], inplace=True
-    )
-    detn_wk1_only.drop(
-        columns=[col for col in detn_wk1_only.columns if col.endswith("_trend")], inplace=True
-    )
-
-    detn_wk2.drop(columns=wk3_cols, inplace=True)
-    # rsquared is always 1 for the 2 row patients as they have complication on the third anthro row (2nd visit)
-    detn_wk2.drop(
-        columns=[col for col in detn_wk2.columns if col.endswith("rsquared")], inplace=True
-    )
-
-    logger.info(f'detn_admit_only shape {detn_admit_only.shape}')
-    # detn_admit_only = make_dummy_columns(detn_admit_only)
-    # detn_wk1_only = make_dummy_columns(detn_wk1_only)
-    # detn_wk2 = make_dummy_columns(detn_wk2)
-    # detn_wk3 = make_dummy_columns(detn_wk3)
     return detn_admit_only, detn_wk1_only, detn_wk2, detn_wk3
-
+  
 
 def make_test(detn, ag_features, label):
     from sklearn.model_selection import train_test_split
@@ -696,7 +692,20 @@ def linear_regress_ols(detn_mh, regressor_col, label):
     return linear_regress_general(detn_mh, regressor_col, label, OLS=True)
 
 
-def reduce_dimensionality(detn, columns_for_reduction, reduced_column_name):
+def reduce_dimensionality(
+    detn: pd.DataFrame, columns_for_reduction: list, reduced_column_name: str
+) -> pd.DataFrame:
+    """
+    Reduces the dimensionality of specified columns in a DataFrame using PCA.
+
+    Args:
+        detn (pd.DataFrame): The input DataFrame.
+        columns_for_reduction (list): A list of column names to reduce.
+        reduced_column_name (str): The name for the new reduced dimension column.
+
+    Returns:
+        pd.DataFrame: The DataFrame with the new reduced dimension column added.
+    """
     import pandas as pd
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import StandardScaler
@@ -706,7 +715,7 @@ def reduce_dimensionality(detn, columns_for_reduction, reduced_column_name):
     df_nonnull = detn[columns_for_reduction].dropna()
 
     # Replace infinite values with NaN
-    df_nonnull.replace([float('inf'), float('-inf')], pd.NA, inplace=True)
+    df_nonnull.replace([float("inf"), float("-inf")], pd.NA, inplace=True)
 
     # Drop rows with NaN after replacing infinities
     df_nonnull = df_nonnull.dropna()
@@ -723,32 +732,132 @@ def reduce_dimensionality(detn, columns_for_reduction, reduced_column_name):
 
     # Fit the PCA model on the selected columns
     pca.fit(scaled_data)
-    logger.info(f'explained variance ratio for {columns_for_reduction}:  {pca.explained_variance_ratio_}')
+
+    logger.info(
+        f"explained variance ratio for {columns_for_reduction}:  {pca.explained_variance_ratio_}"
+    )
+
     # Transform the data to reduce its dimensionality
     reduced_data = pca.transform(scaled_data)
-    reduced_data.columns = [reduced_column_name]
+    reduced_data_df = pd.DataFrame(reduced_data, columns=[reduced_column_name], index=df_nonnull.index)
+
     # Concatenate the reduced data with the original DataFrame
-    detn = pd.concat([detn, reduced_data], axis=1)
-    # detn.drop(columns=columns_for_reduction,inplace=True)
+    detn = pd.concat([detn, reduced_data_df], axis=1)
+
     return detn
 
 
-def merge_probabilities(
-    pid_probabilities, label, X_train_transformed, X_test_transformed, gbm, detn
-):
-    import pandas as pd
+def get_missing_column_descriptions(
+    top_features: list, column_desc: pd.DataFrame, doc_dir: str, desc_filename: str
+) -> None:
+    """
+    Identifies missing column descriptions for a list of top features,
+    appends them to a copy of the column description DataFrame, and saves
+    the updated DataFrame to a new CSV file.
 
+    Args:
+        top_features (list): A list of feature names.
+        column_desc (pd.DataFrame): The DataFrame containing column descriptions,
+                                     indexed by column name.
+        doc_dir (str): The directory where the description file is located.
+        desc_filename (str): The filename of the original column description file.
+    """
+    top_features_series = pd.Series(top_features, name="feature")
+    top_features_df = top_features_series.to_frame()
+    top_features_df["feature_n"] = top_features_df["feature"].str.replace(
+        r"wk[1-3]", "wkn", regex=True
+    )
+
+    merged_df = top_features_df.join(column_desc, on="feature_n", how="left")
+    missing_columns = merged_df[
+        merged_df["description"].isnull()
+    ]["feature_n"].unique()
+    column_desc2 = column_desc.copy()
+    COPIED_DESC = "column_desc2.csv"
+    print(
+        f"document these columns in {doc_dir + COPIED_DESC}: {missing_columns} and copy {COPIED_DESC} to {desc_filename} in the repo"
+    )
+    # prompt: append missing_columns to column_desc2
+    for col in missing_columns:
+        column_desc2.loc[col] = [None, None]
+    column_desc2.to_csv(doc_dir + COPIED_DESC)
+
+def get_feature_descriptions(autogluon_feature_importance: pd.DataFrame, column_desc: pd.DataFrame) -> Tuple[List[str], List[str]]:
+    """
+    Retrieves sorted feature names and their corresponding descriptions.
+
+    Args:
+        autogluon_feature_importance: DataFrame containing feature importance,
+                                      with index as feature names and a
+                                      column 'importance'.
+        column_desc: DataFrame containing feature descriptions, with index
+                     as feature names (possibly generalized, e.g., 'wkn'
+                     instead of 'wk1', 'wk2', 'wk3') and a column 'description'.
+
+    Returns:
+        A tuple containing:
+        - sorted_features: A list of feature names sorted by importance in
+                           descending order.
+        - feature_descriptions: A list of descriptions for the sorted features,
+                                aligned with sorted_features. Missing descriptions
+                                are filled with empty strings.
+    """
+    sorted_features: List[str] = autogluon_feature_importance.sort_values(
+        by="importance", ascending=False
+    ).index.tolist()
+
+    sorted_features_df: pd.DataFrame = pd.Series(sorted_features, name="feature").to_frame()
+
+    # Create a new column 'feature_n' by replacing 'wk1', 'wk2', 'wk3' with 'wkn'
+    sorted_features_df["feature_n"] = sorted_features_df["feature"].str.replace(
+        r"wk[1-3]", "wkn", regex=True
+    )
+
+    # Join with column_desc on the normalized feature name
+    merged_df: pd.DataFrame = sorted_features_df.join(column_desc, on="feature_n", how="left").fillna("")
+
+    # Extract the descriptions for the sorted features
+    feature_descriptions: List[str] = merged_df['description'].to_list()
+
+    return sorted_features, feature_descriptions
+  
+
+def merge_probabilities(
+    pid_probabilities: pd.DataFrame,
+    label: str,
+    X_train_transformed: pd.DataFrame,
+    X_test_transformed: pd.DataFrame,
+    gbm: object,  # Replace with the actual type of your GBM model if possible
+    detn: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Merges the predicted probabilities from a trained Gradient Boosting Machine (GBM)
+    model into a DataFrame containing probabilities by patient ID (pid).
+
+    Args:
+        pid_probabilities (pd.DataFrame): DataFrame containing existing probabilities
+                                          indexed by 'pid'.
+        label (str): The name of the target variable.
+        X_train_transformed (pd.DataFrame): Transformed training data features.
+        X_test_transformed (pd.DataFrame): Transformed testing data features.
+        gbm (object): The trained GBM model with a predict_proba method.
+        detn (pd.DataFrame): The original DataFrame containing patient information,
+                             including 'pid'.
+
+    Returns:
+        pd.DataFrame: The updated DataFrame containing probabilities by 'pid',
+                      including the new GBM probabilities.
+    """
     gbm_probability_label = f"gbm_probability_{label}"
-    y_pred_proba = gbm.predict_proba(X_train_transformed)
+    y_pred_proba_train = gbm.predict_proba(X_train_transformed)
     df_train = X_train_transformed.join(detn["pid"])
     df_train = df_train.reset_index(drop=False)
-    df_train = df_train.join(pd.Series(y_pred_proba[:, 1], name=gbm_probability_label))
+    df_train = df_train.join(pd.Series(y_pred_proba_train[:, 1], name=gbm_probability_label))
     df_train = df_train.set_index("index")
-
-    y_pred_proba = gbm.predict_proba(X_test_transformed)
+    y_pred_proba_test = gbm.predict_proba(X_test_transformed)
     df_test = X_test_transformed.join(detn["pid"])
     df_test = df_test.reset_index(drop=False)
-    df_test = df_test.join(pd.Series(y_pred_proba[:, 1], name=gbm_probability_label))
+    df_test = df_test.join(pd.Series(y_pred_proba_test[:, 1], name=gbm_probability_label))
     df_test = df_test.set_index("index")
     # df[df['pid']== '23-2685'].T
     df = pd.concat([df_train, df_test], axis=0)
@@ -2316,7 +2425,6 @@ def plot_anthros(
     # ax.legend()
     plt.show()
 
-import pandas as pd
 def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,drop_weight: bool = True,drop_height: bool = True,columns_to_keep: set = {},columns_to_explicitly_delete: set = {}) -> pd.DataFrame:
   """
   Drops columns from a pandas DataFrame based on criteria related to outcome variables
@@ -2338,6 +2446,7 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   columns_to_delete = {col for col in detn.columns if 'interpolated' in col}
   # could be caused by poor (or good) weight gain
   columns_to_delete.update({col for col in detn.columns if 'sachets' in col})
+  columns_to_delete.update({col for col in detn.columns if 'outreaches' in col})
   columns_to_delete.update({col for col in detn.columns if 'receivingitp_filter' in col})
   columns_to_delete.update({col for col in detn.columns if 'discharge' in col})
   columns_to_delete.update({col for col in detn.columns if 'dose' in col})
@@ -2733,16 +2842,38 @@ def top_correlations(X, y_col, top_n, detn):
     )
 
 
-def ag_feature_generator(X_train, X_test):
+def ag_feature_generator(
+    X_train: pd.DataFrame, X_test: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Generates features for machine learning models using AutoGluon's AutoMLPipelineFeatureGenerator.
+
+    This function takes training and testing dataframes, applies AutoGluon's
+    feature engineering pipeline, and then cleans the column names to be compatible
+    with various model implementations (e.g., replacing spaces, commas, and other
+    special characters with underscores and dropping duplicate columns).
+
+    Args:
+        X_train (pd.DataFrame): The training data features.
+        X_test (pd.DataFrame): The testing data features.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: A tuple containing the transformed
+            training and testing dataframes with cleaned column names and
+            duplicate columns removed.
+    """
     from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 
     auto_ml_pipeline_feature_generator = AutoMLPipelineFeatureGenerator()
     X_train_transformed = auto_ml_pipeline_feature_generator.fit_transform(X=X_train)
     X_test_transformed = auto_ml_pipeline_feature_generator.transform(X_test)
     # Replace whitespace in column names with underscores
-    X_train_transformed.columns = [col.replace(" ", "_") for col in X_train_transformed.columns]
-    X_test_transformed.columns = [col.replace(" ", "_") for col in X_test_transformed.columns]
-
+    X_train_transformed.columns = [
+        col.replace(" ", "_") for col in X_train_transformed.columns
+    ]
+    X_test_transformed.columns = [
+        col.replace(" ", "_") for col in X_test_transformed.columns
+    ]
     X_train_transformed.columns = X_train_transformed.columns.str.replace(
         "[, ]", "_", regex=True
     )  # Replace commas and spaces
@@ -2756,12 +2887,14 @@ def ag_feature_generator(X_train, X_test):
     X_test_transformed.columns = X_test_transformed.columns.str.replace(
         "[^a-zA-Z0-9_]", "_", regex=True
     )
-
     # prompt: remove duplicate column names in X_train_transformed
-
     # Drop duplicate columns in X_train_transformed
-    X_train_transformed = X_train_transformed.loc[:, ~X_train_transformed.columns.duplicated()]
-    X_test_transformed = X_test_transformed.loc[:, ~X_test_transformed.columns.duplicated()]
+    X_train_transformed = X_train_transformed.loc[
+        :, ~X_train_transformed.columns.duplicated()
+    ]
+    X_test_transformed = X_test_transformed.loc[
+        :, ~X_test_transformed.columns.duplicated()
+    ]
     return X_train_transformed, X_test_transformed
 
 

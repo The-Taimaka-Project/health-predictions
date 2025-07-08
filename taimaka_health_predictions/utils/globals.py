@@ -16,3 +16,5 @@ ETL_DIR = "etl/"
 MODEL_DIR = "model/"
 ADMIT_ONLY = "1"
 NOT_ADMIT_ONLY = "not1"
+DOC_DIR = 'taimaka_health_predictions/train/'
+DESC = 'column_desc.csv'
