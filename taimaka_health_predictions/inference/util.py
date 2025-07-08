@@ -2733,16 +2733,38 @@ def top_correlations(X, y_col, top_n, detn):
     )
 
 
-def ag_feature_generator(X_train, X_test):
+def ag_feature_generator(
+    X_train: pd.DataFrame, X_test: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Generates features for machine learning models using AutoGluon's AutoMLPipelineFeatureGenerator.
+
+    This function takes training and testing dataframes, applies AutoGluon's
+    feature engineering pipeline, and then cleans the column names to be compatible
+    with various model implementations (e.g., replacing spaces, commas, and other
+    special characters with underscores and dropping duplicate columns).
+
+    Args:
+        X_train (pd.DataFrame): The training data features.
+        X_test (pd.DataFrame): The testing data features.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: A tuple containing the transformed
+            training and testing dataframes with cleaned column names and
+            duplicate columns removed.
+    """
     from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 
     auto_ml_pipeline_feature_generator = AutoMLPipelineFeatureGenerator()
     X_train_transformed = auto_ml_pipeline_feature_generator.fit_transform(X=X_train)
     X_test_transformed = auto_ml_pipeline_feature_generator.transform(X_test)
     # Replace whitespace in column names with underscores
-    X_train_transformed.columns = [col.replace(" ", "_") for col in X_train_transformed.columns]
-    X_test_transformed.columns = [col.replace(" ", "_") for col in X_test_transformed.columns]
-
+    X_train_transformed.columns = [
+        col.replace(" ", "_") for col in X_train_transformed.columns
+    ]
+    X_test_transformed.columns = [
+        col.replace(" ", "_") for col in X_test_transformed.columns
+    ]
     X_train_transformed.columns = X_train_transformed.columns.str.replace(
         "[, ]", "_", regex=True
     )  # Replace commas and spaces
@@ -2756,12 +2778,14 @@ def ag_feature_generator(X_train, X_test):
     X_test_transformed.columns = X_test_transformed.columns.str.replace(
         "[^a-zA-Z0-9_]", "_", regex=True
     )
-
     # prompt: remove duplicate column names in X_train_transformed
-
     # Drop duplicate columns in X_train_transformed
-    X_train_transformed = X_train_transformed.loc[:, ~X_train_transformed.columns.duplicated()]
-    X_test_transformed = X_test_transformed.loc[:, ~X_test_transformed.columns.duplicated()]
+    X_train_transformed = X_train_transformed.loc[
+        :, ~X_train_transformed.columns.duplicated()
+    ]
+    X_test_transformed = X_test_transformed.loc[
+        :, ~X_test_transformed.columns.duplicated()
+    ]
     return X_train_transformed, X_test_transformed
 
 
