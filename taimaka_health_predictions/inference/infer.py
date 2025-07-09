@@ -424,7 +424,8 @@ logger.debug(pid_probabilities.shape)
 pid_probabilities[f'percentrank_{label}'] = pid_probabilities[f'probability_{label}'].rank(pct=True)
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}'] > TOP_PCT]['pid'].unique()
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features,column_desc)
+  #json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features,column_desc)
+  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn[label]== 0)],ag_features,column_desc)
   pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
