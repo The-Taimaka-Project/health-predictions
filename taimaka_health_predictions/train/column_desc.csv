@@ -313,3 +313,13 @@ b_phonehave,"If we wanted to get in touch with the caregiver via phone, is there
 hfa_diff_ratio,"last/latest height for age minus first hfa divided by first hfa.  Expressed as a percentage, gain normalized by beginning hfa.",
 weekly_avg_muac,average muac over all the visits,
 wfa_trend,weight for age (wfa) linear regression trend line slope through all wfa visit points up to appropriate deterioration type or last visit,
+wfa_diff,the difference between the most recent (before deterioration) wfa (weight for age) and the first visit's wfa,
+weekly_max_wfa,maximum wfa (weight for age) over all the visits,
+wkn_pull_status,status of patient at nth most recent week,weekly_raw
+b_had6wvax_raw,"Has the child received their ""6 weeks"" series of vaccines?",raw
+weekly_first_wfh,wfh (weight for height) at first visit,
+wkn_pp_wfhz_weekly,"discretized wfhz at -3, -2 standard deviations, at nth most recent week if(${wfh_maln_status} = 'sam', '<-3', if(${wfh_maln_status} = 'mam', '<-2', if(${wfh_maln_status} = 'healthy', '>= -2', 'UNKNOWN')))",
+wkn_weight,weight at nth most recent visit,
+weekly_max_wfh,maximum wfh (weight for height) over all the visits,
+wfa_diff_ratio,"last/latest wfa (weight for age) minus first wfa divided by first wfa.  Expressed as a percentage, gain normalized by beginning wfa.",
+b_hadbirthvax_raw,"Has the child received their ""Birth"" series of vaccines?",raw
