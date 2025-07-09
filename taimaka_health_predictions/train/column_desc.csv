@@ -310,3 +310,6 @@ weekly_last_muac,muac at last weekly follow-up visit,weekly_raw
 pt_hiv_treat,Is the patient currently receiving HIV treatment?,
 cat2_diarrhea,"if(${c_diarrhea, How many times has the child passed watery diarrhea in the past 24 hours? } = 'threeMore', 'true', 'false')",
 b_phonehave,"If we wanted to get in touch with the caregiver via phone, is there any phone number we can use?",
+hfa_diff_ratio,"last/latest height for age minus first hfa divided by first hfa.  Expressed as a percentage, gain normalized by beginning hfa.",
+weekly_avg_muac,average muac over all the visits,
+wfa_trend,weight for age (wfa) linear regression trend line slope through all wfa visit points up to appropriate deterioration type or last visit,
