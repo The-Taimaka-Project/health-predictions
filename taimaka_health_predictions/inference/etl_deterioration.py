@@ -1394,6 +1394,8 @@ for col in deterioration_types:
     else:
         export = export.merge(y_detn_all, left_on="pid", right_index=True, how="left")
     export = export.replace(-np.inf, 0)
+    # k nearest neighbors can't handle infinity
+    export.replace([float("inf"), float("-inf")], pd.NA, inplace=True)
     export[col].fillna(False, inplace=True)
     export[col] = export[col].astype(int)
     export["row_count"].fillna(0, inplace=True)
