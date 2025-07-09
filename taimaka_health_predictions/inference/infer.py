@@ -785,6 +785,6 @@ def upload_df_replace(df, tname):
         conn.commit()
 
 logger.info("Writing pid_probabilities to Postgres table...")
-print(pid_probabilities.head())
-#upload_df_replace(pid_probabilities, 'pid_probabilities')
+#print(pid_probabilities.head())
+upload_df_replace(pid_probabilities, 'pid_probabilities')
 logger.info("Finished writing pid_probabilities to Postgres table.")
