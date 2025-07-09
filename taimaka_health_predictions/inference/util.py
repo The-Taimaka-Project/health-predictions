@@ -2344,6 +2344,7 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   # could be caused by poor (or good) weight gain
   columns_to_delete.update({col for col in detn.columns if 'sachets' in col})
   columns_to_delete.update({col for col in detn.columns if 'outreaches' in col})
+  columns_to_delete.update({col for col in detn.columns if 'pull_status' in col})
   columns_to_delete.update({col for col in detn.columns if 'receivingitp_filter' in col})
   columns_to_delete.update({col for col in detn.columns if 'discharge' in col})
   columns_to_delete.update({col for col in detn.columns if 'dose' in col})
