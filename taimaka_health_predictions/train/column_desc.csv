@@ -291,3 +291,22 @@ latitude,latitude of the patient's settlement (imputed by matching settlement na
 longitude,longitude of the patient's settlement (imputed by matching settlement name with score of 75 or better),
 elevation,elevation of the patient's settlement (imputed by matching settlement name with score of 75 or better),
 phq_score,"mental health quality score, scale of 1 to about 9, imputed for data before mh was gathered.  Infers missing PHQ scores using a linear regression model in util method infer_phq_score using ""age_takewater"", ""rainy_season"" as regressors",
+b_curr_bfeed,Is the child currently being breastfed? Upon admittance,raw
+final_cough,"coalesce(${b_cough, Does the child have a cough?}, ${cough_bkup, Does the child have a cough?}) at admittance",raw
+b_rota3diff_admit,Was Rota-3 given on a different date?,
+b_cough,Does the child have a cough?,
+b_acceptri,Will the caregiver go to RI services?,
+lean_season_admit,was patient admitted during lean season (June - August)?,admit_processed
+b_fu_hoh,Does this referral slip indicate that a follow-up is needed with the head of household?,raw
+wfh_mam_threshold,"wfh < -2 standard deviations if(${wfh_error} != 'error', pulldata('wfh', 'sdNeg2', 'lookup', ${wfh_lookup_calc}), 'error')",raw
+care_decisionmaker,Who usually makes decisions about healthcare for this child?,raw
+b_cg_preg,Is the caregiver pregnant?,raw
+b_muac_wfh_admit," it is true if the child has co-occurring nutritional deficiencies. However, it's actually coded around muac < 11.5 and wfhz < -3 (so the child meets the definitely for severe acute malnutrition by both criteria). If either value (muac or wfhz) is missing, it should be NA",raw
+rdt_result,Conduct a malaria RDT and record the result: True/False,raw
+assigned_cm_other,Who is the community mobilizer assigned to the child?  Specify other,raw
+c_admission,Who referred the child to this facility? 99% null,raw
+age_height_check,Is the child under 110cm?,
+weekly_last_muac,muac at last weekly follow-up visit,weekly_raw
+pt_hiv_treat,Is the patient currently receiving HIV treatment?,
+cat2_diarrhea,"if(${c_diarrhea, How many times has the child passed watery diarrhea in the past 24 hours? } = 'threeMore', 'true', 'false')",
+b_phonehave,"If we wanted to get in touch with the caregiver via phone, is there any phone number we can use?",
