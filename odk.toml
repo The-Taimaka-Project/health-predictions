@@ -1,0 +1,5 @@
+[central]
+base_url = "https://taimaka-internal.org:7443"
+username = "jennifer@taimaka.org"
+password = "deutsch6TH"
+default_project_id = 9
