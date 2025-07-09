@@ -42,7 +42,7 @@ import os
 import re
 import json
 from taimaka_health_predictions.utils.digitalocean import DigitalOceanStorage
-from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_ONLY, NOT_ADMIT_ONLY, logger
+from taimaka_health_predictions.utils.globals import ETL_DIR, MODEL_DIR, ADMIT_ONLY, NOT_ADMIT_ONLY, DOC_DIR, DESC, logger
 
 from taimaka_health_predictions.inference.util import (
     DetnReaderWriter,
@@ -68,6 +68,10 @@ detn_reader = DetnReaderWriter()
 # run secrets first to set the environment variables for your credentials
 do_storage = DigitalOceanStorage()
 
+# get the column descriptions from the repo so we can explain the Shapley waterfall columns
+%cd health-predictions
+column_desc = pd.read_csv(DOC_DIR + DESC)
+column_desc = column_desc.set_index('column')
 
 
 # use auto ML (autogluon) to predict the 5 deterioration events
@@ -81,7 +85,39 @@ pid_probabilities = admit_current[['pid','status','site_current']].copy()
 active_pids = pid_probabilities[pid_probabilities['status']=='active']['pid'].unique()
 logger.debug(pid_probabilities.shape)
 
-def export_waterfall_shap_values(explainer2: shap.KernelExplainer, detn: pd.DataFrame, features: List[str]) -> pd.Series:
+
+def get_column_descriptions(features: List[str], column_desc: pd.DataFrame) -> List[str]:
+    """
+    Retrieves features' corresponding descriptions.
+
+    Args:
+        features: list of feature names.
+        column_desc: DataFrame containing feature descriptions, with index
+                     as feature names (possibly generalized, e.g., 'wkn'
+                     instead of 'wk1', 'wk2', 'wk3') and a column 'description'.
+
+    Returns:
+        feature_descriptions: A list of descriptions features,
+                                aligned with features. Missing descriptions
+                                are filled with empty strings.
+    """
+
+    features_df: pd.DataFrame = pd.Series(features, name="feature").to_frame()
+
+    # Create a new column 'feature_n' by replacing 'wk1', 'wk2', 'wk3' with 'wkn'
+    features_df["feature_n"] = features_df["feature"].str.replace(
+        r"wk[1-3]", "wkn", regex=True
+    )
+
+    # Join with column_desc on the normalized feature name
+    merged_df: pd.DataFrame = features_df.join(column_desc, on="feature_n", how="left").fillna("")
+
+    # Extract the descriptions for the sorted features
+    feature_descriptions: List[str] = merged_df['description'].to_list()
+
+    return feature_descriptions
+
+def export_waterfall_shap_values(explainer2: shap.KernelExplainer, detn: pd.DataFrame, features: List[str], column_desc: pd.DataFrame) -> pd.Series:
   """
   Calculates SHAP values using a KernelExplainer and organizes them into a pandas Series
   indexed by patient ID, with each value being a dictionary containing SHAP values,
@@ -92,10 +128,15 @@ def export_waterfall_shap_values(explainer2: shap.KernelExplainer, detn: pd.Data
       detn (pd.DataFrame): DataFrame containing patient data, including the features
                            used for SHAP calculation and a 'pid' column.
       features (List[str]): A list of feature names used in the explainer.
+      column_desc: DataFrame containing feature descriptions, with index
+                     as feature names (possibly generalized, e.g., 'wkn'
+                     instead of 'wk1', 'wk2', 'wk3') and a column 'description'.
+
 
   Returns:
       pd.Series: A Series indexed by 'pid', where each element is a dictionary with
-                 'base_probability', 'shap_values', 'feature_values', and 'feature_names'.
+                 'base_probability', 'shap_values', 'feature_values', 'feature_names' 
+                 and 'feature_descriptions'.
   """
 
   shap_values_all = explainer2.shap_values(detn[features]) # Calculate SHAP values
@@ -104,7 +145,6 @@ def export_waterfall_shap_values(explainer2: shap.KernelExplainer, detn: pd.Data
                        explainer2.expected_value,
                        data=detn[features].values,
                        feature_names=features)
-
 
   # prompt: create a json object combining each array occurrence of exp_all.values with the corresponding array occurence of exp_all.data
 
@@ -115,7 +155,8 @@ def export_waterfall_shap_values(explainer2: shap.KernelExplainer, detn: pd.Data
           'base_probability': exp_all.base_values,
           'shap_values': shap_values_array.tolist(),
           'feature_values': feature_values_array.tolist(),
-          'feature_names': exp_all.feature_names
+          'feature_names': exp_all.feature_names,
+          'feature_descriptions': get_column_descriptions(features,column_desc)
       }
       json_objects.append(data_dict)
 
@@ -125,7 +166,7 @@ def export_waterfall_shap_values(explainer2: shap.KernelExplainer, detn: pd.Data
   # Create a Series from the json_dict where the index is the pid
   json_series = pd.Series(json_dict)
   return json_series
-
+    
 def export_survival_values(detn: pd.DataFrame, parm_series: pd.Series) -> Dict[Any, Dict[str, Any]]:
   """
   Exports survival model parameters and features for each patient in a dictionary format.
@@ -244,7 +285,7 @@ detn_filtered = detn[detn['pid'].isin(pid_not_in_admit)].copy()
 y_pred_proba_all1,explainer1a,ag_features1a = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
 
 if EXPORT_SHAP_WATERFALL:    
-  json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a)
+  json_series = export_waterfall_shap_values(explainer1a,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1a,column_desc)
 
 y_pred_proba_all2,explainer2a,ag_features2a = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
 
@@ -257,7 +298,7 @@ pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'proba
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
 
 if EXPORT_SHAP_WATERFALL:
-  json_series2 = export_waterfall_shap_values(explainer2a,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2a)
+  json_series2 = export_waterfall_shap_values(explainer2a,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2a,column_desc)
   pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series,json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
@@ -384,7 +425,7 @@ logger.debug(pid_probabilities.shape)
 pid_probabilities[f'percentrank_{label}'] = pid_probabilities[f'probability_{label}'].rank(pct=True)
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}'] > TOP_PCT]['pid'].unique()
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features)
+  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features,column_desc)
   pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
@@ -490,7 +531,7 @@ logger.debug(pid_probabilities.shape)
 pid_probabilities[f'percentrank_{label}'] = pid_probabilities[f'probability_{label}'].rank(pct=True)
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}'] > TOP_PCT]['pid'].unique()
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features)
+  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features,column_desc)
   pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
@@ -595,7 +636,7 @@ logger.debug(pid_probabilities.shape)
 pid_probabilities[f'percentrank_{label}'] = pid_probabilities[f'probability_{label}'].rank(pct=True)
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}'] > TOP_PCT]['pid'].unique()
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features)
+  json_series = export_waterfall_shap_values(explainer,detn[(detn['pid'].isin(active_pids)) & (detn['pid'].isin(top_pct_pids)) & (detn[label]== 0)],ag_features,column_desc)
   pid_probabilities = pd.merge(pid_probabilities, json_series.rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
@@ -636,7 +677,7 @@ detn_filtered.replace([np.inf, -np.inf], np.nan, inplace=True)
 y_pred_proba_all1,explainer1,ag_features1 = run_ag_model(label,detn_admit_only,ADMIT_ONLY)
 
 if EXPORT_SHAP_WATERFALL:
-  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1)
+  json_series = export_waterfall_shap_values(explainer1,detn_admit_only[(detn_admit_only['pid'].isin(active_pids)) & (detn_admit_only[label]== 0)],ag_features1,column_desc)
     
 y_pred_proba_all2,explainer2,ag_features2 = run_ag_model(label,detn_filtered,NOT_ADMIT_ONLY)
 
@@ -649,7 +690,7 @@ pid_probabilities[f'percentrank_{label}_stratified'] = pid_probabilities[f'proba
 top_pct_pids = pid_probabilities[pid_probabilities[f'percentrank_{label}_stratified'] > TOP_PCT]['pid'].unique()
 
 if EXPORT_SHAP_WATERFALL:
-  json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2)
+  json_series2 = export_waterfall_shap_values(explainer2,detn_filtered[(detn_filtered['pid'].isin(active_pids)) & (detn_filtered['pid'].isin(top_pct_pids)) & (detn_filtered[label]== 0)],ag_features2,column_desc)
   pid_probabilities = pd.merge(pid_probabilities, pd.concat([json_series,json_series2]).rename(f'{label}_shap_data'), left_on='pid', right_index=True, how='left')
 
 
@@ -745,5 +786,5 @@ def upload_df_replace(df, tname):
 
 logger.info("Writing pid_probabilities to Postgres table...")
 print(pid_probabilities.head())
-upload_df_replace(pid_probabilities, 'pid_probabilities')
+#upload_df_replace(pid_probabilities, 'pid_probabilities')
 logger.info("Finished writing pid_probabilities to Postgres table.")
