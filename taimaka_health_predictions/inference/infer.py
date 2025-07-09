@@ -69,7 +69,6 @@ detn_reader = DetnReaderWriter()
 do_storage = DigitalOceanStorage()
 
 # get the column descriptions from the repo so we can explain the Shapley waterfall columns
-%cd health-predictions
 column_desc = pd.read_csv(DOC_DIR + DESC)
 column_desc = column_desc.set_index('column')
 
