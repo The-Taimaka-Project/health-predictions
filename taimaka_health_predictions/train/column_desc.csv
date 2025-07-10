@@ -291,3 +291,85 @@ latitude,latitude of the patient's settlement (imputed by matching settlement na
 longitude,longitude of the patient's settlement (imputed by matching settlement name with score of 75 or better),
 elevation,elevation of the patient's settlement (imputed by matching settlement name with score of 75 or better),
 phq_score,"mental health quality score, scale of 1 to about 9, imputed for data before mh was gathered.  Infers missing PHQ scores using a linear regression model in util method infer_phq_score using ""age_takewater"", ""rainy_season"" as regressors",
+b_curr_bfeed,Is the child currently being breastfed? Upon admittance,raw
+final_cough,"coalesce(${b_cough, Does the child have a cough?}, ${cough_bkup, Does the child have a cough?}) at admittance",raw
+b_rota3diff_admit,Was Rota-3 given on a different date?,
+b_cough,Does the child have a cough?,
+b_acceptri,Will the caregiver go to RI services?,
+lean_season_admit,was patient admitted during lean season (June - August)?,admit_processed
+b_fu_hoh,Does this referral slip indicate that a follow-up is needed with the head of household?,raw
+wfh_mam_threshold,"wfh < -2 standard deviations if(${wfh_error} != 'error', pulldata('wfh', 'sdNeg2', 'lookup', ${wfh_lookup_calc}), 'error')",raw
+care_decisionmaker,Who usually makes decisions about healthcare for this child?,raw
+b_cg_preg,Is the caregiver pregnant?,raw
+b_muac_wfh_admit," it is true if the child has co-occurring nutritional deficiencies. However, it's actually coded around muac < 11.5 and wfhz < -3 (so the child meets the definitely for severe acute malnutrition by both criteria). If either value (muac or wfhz) is missing, it should be NA",raw
+rdt_result,Conduct a malaria RDT and record the result: True/False,raw
+assigned_cm_other,Who is the community mobilizer assigned to the child?  Specify other,raw
+c_admission,Who referred the child to this facility? 99% null,raw
+age_height_check,Is the child under 110cm?,
+weekly_last_muac,muac at last weekly follow-up visit,weekly_raw
+pt_hiv_treat,Is the patient currently receiving HIV treatment?,
+cat2_diarrhea,"if(${c_diarrhea, How many times has the child passed watery diarrhea in the past 24 hours? } = 'threeMore', 'true', 'false')",
+b_phonehave,"If we wanted to get in touch with the caregiver via phone, is there any phone number we can use?",
+hfa_diff_ratio,"last/latest height for age minus first hfa divided by first hfa.  Expressed as a percentage, gain normalized by beginning hfa.",
+weekly_avg_muac,average muac over all the visits,
+wfa_trend,weight for age (wfa) linear regression trend line slope through all wfa visit points up to appropriate deterioration type or last visit,
+wfa_diff,the difference between the most recent (before deterioration) wfa (weight for age) and the first visit's wfa,
+weekly_max_wfa,maximum wfa (weight for age) over all the visits,
+wkn_pull_status,status of patient at nth most recent week,weekly_raw
+b_had6wvax_raw,"Has the child received their ""6 weeks"" series of vaccines?",raw
+weekly_first_wfh,wfh (weight for height) at first visit,
+wkn_pp_wfhz_weekly,"discretized wfhz at -3, -2 standard deviations, at nth most recent week if(${wfh_maln_status} = 'sam', '<-3', if(${wfh_maln_status} = 'mam', '<-2', if(${wfh_maln_status} = 'healthy', '>= -2', 'UNKNOWN')))",
+wkn_weight,weight at nth most recent visit,
+weekly_max_wfh,maximum wfh (weight for height) over all the visits,
+wfa_diff_ratio,"last/latest wfa (weight for age) minus first wfa divided by first wfa.  Expressed as a percentage, gain normalized by beginning wfa.",
+b_hadbirthvax_raw,"Has the child received their ""Birth"" series of vaccines?",raw
+give_al_act,"if(${cat2_malaria} = 'true', 'true', 'false')",raw
+cat2_cough,Does the child have a cough?,
+b_muac_waz_admit,muac less than 11.5 and weight for age zscore less than -3,
+bfeed_intro_food,"(df[""age""] < 6) & (df[""b_curr_bfeed""] == ""true"") & (df[""alt_foods_bfeed""] == ""false""),
+            (df[""age""] > 5) & (df[""age_takefamily""] == 6),
+            (df[""age""] > 5) & (df[""age_takefamily""].isnull()),
+            (df[""b_curr_bfeed""].isnull()),",
+foi_result,"if((${b_eyedisch} = 'true' or ${b_eardisch} = 'true' or ${b_coryza} = 'true' or ${b_otherdisch} = 'true') or ${b_orash} = 'true' or ${b_ppu} = 'true' or ${b_cough} = 'true' or ${c_diarrhea} != 'false', 'true', 'false')",
+b_had14wvax_raw,"Has the child received their ""14 weeks"" series of vaccines?",
+scale_type,What type of scale are you using?,
+b_had10wvax_raw,"Has the child received their ""10 weeks"" series of vaccines?",
+b_coryza,Does the child have a runny nose (coryza)?,
+bfeed_exc_food," (df[""age""] < 6) & (df[""b_curr_bfeed""] == ""true"") & (df[""alt_foods_bfeed""] == ""false""),
+            (df[""age""] < 6)
+            & (df[""b_curr_bfeed""] == ""true"")
+            & df[""alt_foods_bfeed""].astype(str).str.contains(""food"", na=False),
+            (df[""age""] > 5) & (df[""age_takefamily""] > 5),
+            (df[""age""] > 5) & (df[""age_takefamily""].isnull()),
+            (df[""b_curr_bfeed""].isnull()),",
+v_miss6,"if(count-selected(${which_6wvax}) < 5 and (${age} >=2 or ${age_weeks} >= 6), 'true', 'false')",
+nophone_consent,"Taimaka conducts research to improve nutrition services. We would like to use your child's infomration as part of our research. We will anonymize the information, meaning we will remove all identifying details, like phone numbers and names. Is it okay with you if we use your child's data for research purposes? This is voluntary; you can still get treatment if you say no.",
+pp_rdt,"if(${rdt_overall} != '', if(${rdt_overall} = 'true', 'Positive', 'Negative'), 'Not given')",
+cg_hiv_treat,Is the caregiver currently receiving HIV treatment?,
+v_miss0,"if(count-selected(${which_birthvax}) < 3, 'true', 'false')",
+pp_wfhz,"if(${wfh_maln_status} = 'sam', '<-3', if(${wfh_maln_status} = 'mam', '<-2', if(${wfh_maln_status} = 'healthy', '>= -2', 'UNKNOWN')))",
+c_diarrhea,How many times has the child passed watery diarrhea in the past 24 hours?,
+c_vomiting,How many times a day is the child vomiting?,
+v_missrem,"if((not(selected(${c_remainvax}, 'vd_vita1')) and ${age} >= 6) or (not(selected(${c_remainvax}, 'vd_measles1')) and ${age} >= 9) or (not(selected(${c_remainvax}, 'vd_yf')) and ${age} >= 9) or (not(selected(${c_remainvax}, 'vd_menin')) and ${age} >= 9) or (not(selected(${c_remainvax}, 'vd_vita2')) and ${age} >= 9) or (not(selected(${c_remainvax}, 'vd_measles2')) and ${age} >= 9), 'true', 'false')",
+sslip1,"Please enter the serial number on the slip, in the top right corner:",
+muac_diff_ratio_z,"Combined z-score for normalized values of  ['muac_diff_ratio', 'muac']: explained variance is [0.76207775] (PCA single dimension reduction)",
+resp_rate_temperature_z,"Combined z-score for normalized values of ['resp_rate', 'temperature'] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+muac_wfh,"Combined z-score for normalized values of ['weekly_avg_muac','weekly_last_wfh',] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+wfa_hfa_trend_z,"Combined z-score for normalized values of ['wfa_trend','hfa_trend'] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+cat1_complications_z,"Combined z-score for normalized values of ['cat1_complications_weekly','admit_cat1_complications'] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+season_z,"Combined z-score for normalized values of ['wk1_rainy_season_weekly','lean_season_admit'] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+wfh_trend_z,"Combined z-score for normalized values of ['wfh_rsquared','wfh_trend'] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+duration_z,"Combined z-score for normalized values of ['duration_days','wk1_calc_los'] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+muac_diff_rate_ratio_z,"Combined z-score for normalized values of ['wk1_muac_diff_rate','muac_diff_ratio_rate','muac_diff_ratio'] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+muac_wfh_z,"Combined z-score for normalized values of ['weekly_avg_muac','weekly_last_wfh',] (if <0, the score is below average; if >0, the score is above average) (PCA single dimension reduction)",
+weight_diff_ratio,"last/latest weight minus first weight divided by first weight.  Expressed as a percentage, gain normalized by beginning weight.",
+weekly_avg_wfa,average wfa (weight for age) over all the visits,
+wkn_hl,height/length at nth most recent visit,
+indiv_valid_admit,"if(${maln_status} = 'sam' or (${maln_status} = 'mam' and ${age} < 6), 'true', 'false')",
+pt_photo,patient photo id (65% null),weekly
+wkn_hl_diff_rate,height/length difference of second most recent visit from prior visit divided by the number of days since prior visit (usually 7),
+weekly_min_wfa,minimum weight for age over all the weekly visits,
+wkn_wfh_sam_threshold_weekly,"wfh < -3 standard deviations if(${wfh_error} != 'error', pulldata('wfh', 'sdNeg3', 'lookup', ${wfh_lookup_calc}), 'error')",
+cat1_diarrhea,multiple or constant diarrhea,
+b_isinedc,is in new education program,
+wkn_fgive_nystatin_weekly,"if(${tgive-nystatin} = 'true' or selected(${add-drugs_which}, 'nystatin'), 'true', 'false')",

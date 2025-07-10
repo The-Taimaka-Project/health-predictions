@@ -1706,75 +1706,6 @@ def lightgbm_train(
     return gbm, f1_scored, aic, top_features, avg_precision
 
 
-def drop_columns(detn):
-  drop_columns_muac(detn,drop_muac=True,drop_weight=False,drop_height=False)
-
-def drop_columns_muac(detn,drop_muac=True,drop_weight=True,drop_height=True):
-  detn.drop(columns=[col for col in detn.columns if 'lastms' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'otp' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'precalcsite' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'numweeksback' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'glbsite' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'autosite' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'additionalnotes' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'wast' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'attachments' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'photo' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'picture' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'canmovevisit' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'staffmember' in col],inplace=True)
-  #detn.drop(columns=[col for col in detn.columns if 'bednet' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'receivedsmc' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'device' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'lookup_calc' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'submitter' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'dose' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'settlement' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'calcdate' in col],inplace=True)
-
-  detn.drop(columns=[col for col in detn.columns if 'manual_daystonv' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'resp_rate_2' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'doneses' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'end_time' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'endtime' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'submissiondate' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'name' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'pp_cm' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'starttime' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'submission_date' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'start_time' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'last_admit' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'c_assigned_cm' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'first_admit' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'site_admit' in col],inplace=True)
-  #detn.drop(columns=[col for col in detn.columns if '_week' in col and col not in ['muac_loss_2_weeks_consecutive']],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'site_admit' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'site_admit' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if col.endswith('_week') and not col.endswith('_weekly')],inplace=True)
-  if drop_muac:
-    detn.drop(columns=[col for col in detn.columns if 'muac' in col and col not in ['weekly_last_muac','muac_loss_2_weeks_consecutive']],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'todate' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if col.endswith('_age')],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'birthdate' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'vax_dates' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if col.startswith('vd_')],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'sequence_num' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if col.endswith('visitnum')],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'row_count' in col],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'los' in col and col not in ['wk1_calc_los','detn_weight_loss_ever','muac_loss_2_weeks_consecutive']],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'time_minutes' in col],inplace=True)
-  if drop_height:
-    detn.drop(columns=[col for col in detn.columns if 'hl' in col and col not in ['hl_trend']],inplace=True)
-    detn.drop(columns=[col for col in detn.columns if 'hfa' in col and col not in ['hfa_trend']],inplace=True)
-
-  detn.drop(columns=[col for col in detn.columns if 'form' in col ],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'date' in col ],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if 'drug_record' in col ],inplace=True)
-  detn.drop(columns=[col for col in detn.columns if col.endswith('vax')],inplace=True)
-  if drop_weight:
-    detn.drop(columns=[col for col in detn.columns if 'wfa' in col and col not in ['wfa_trend']],inplace=True)
-    detn.drop(columns=[col for col in detn.columns if 'wfh' in col and col not in ['weekly_last_wfh']],inplace=True)
-    detn.drop(columns=[col for col in detn.columns if 'weight' in col and col not in ['wk1_weight_diff_rate','detn_weight_loss_ever']],inplace=True)
 
 def gbm_shap(
     features: pd.Series,
@@ -1828,40 +1759,6 @@ def gbm_shap(
         shap_values_explanation, max_display=20, clustering=clustering, clustering_cutoff=cutoff
     )
 
-
-def drop_result_columns(detn, label):
-    """
-    drop columns that happen as a result of the deterioration, reverse causality
-    """
-    detn.drop(columns=[col for col in detn.columns if "interpolated" in col], inplace=True)
-    # could be caused by poor (or good) weight gain
-    detn.drop(columns=[col for col in detn.columns if "sachets" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "receivingitp_filter" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "discharge" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "dose" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "rationweeks" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "nv_date" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "eligible" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "drugs" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "dischq" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "lag" in col], inplace=True)
-    # Actively receiving treatment may because of complication rather than predicting it
-    detn.drop(columns=[col for col in detn.columns if "status_text" in col], inplace=True)
-    # set to 1 if Actively receiving treatment
-    detn.drop(columns=[col for col in detn.columns if "correct_status" in col], inplace=True)
-    # for zero weeks (those w/o wk1) completely determines new onset complication, by def'n
-    if "weekly_row_count" in detn.columns:
-        detn.drop(columns=[col for col in detn.columns if "weekly_row_count" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "form_version" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "submitter_id" in col], inplace=True)
-
-    # for the 4 in that have only 1 week, if either is set to 1, then new complications always 0, probably caused by new onset complication, rather than predicting it
-    detn.drop(columns=[col for col in detn.columns if "imci_emergency_otp" in col], inplace=True)
-    detn.drop(columns=[col for col in detn.columns if "referred_emergency" in col], inplace=True)
-
-    # detn.drop(columns=[f'{label}_date'], inplace=True)
-
-    return detn
 
 
 def explain_logreg(idx, test_labelled_logreg, label):
@@ -2447,6 +2344,7 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   # could be caused by poor (or good) weight gain
   columns_to_delete.update({col for col in detn.columns if 'sachets' in col})
   columns_to_delete.update({col for col in detn.columns if 'outreaches' in col})
+  columns_to_delete.update({col for col in detn.columns if 'pull_status' in col})
   columns_to_delete.update({col for col in detn.columns if 'receivingitp_filter' in col})
   columns_to_delete.update({col for col in detn.columns if 'discharge' in col})
   columns_to_delete.update({col for col in detn.columns if 'dose' in col})
@@ -2550,7 +2448,7 @@ def drop_feature_columns(detn: pd.DataFrame,label: str,drop_muac: bool = True,dr
   detn.drop(columns=columns_to_delete.intersection(set(detn.columns)),inplace=True)
   return detn
 
-
+# TODO convert this to DO or Postgres to find the recent columns
 def drop_recent_columns(detn, use_cache=True, months=15):
     import pandas as pd
 
