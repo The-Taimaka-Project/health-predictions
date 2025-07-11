@@ -19,6 +19,9 @@ from memory_profiler import profile
 
 load_dotenv()
 
+TRAIN= os.getenv("TRAIN", "False").lower() == "true"
+
+
 # --- PostgreSQL Connection ---
 DB_NAME = "cmam"
 DB_HOST = "taimaka-internal.org"
