@@ -1,11 +1,5 @@
-"""
-Requirements:
+# data_loader.py
 
-Environment must contain variables named "TAIMAKA_POSTGRES_USER", "TAIMAKA_POSTGRES_PW",
-"TAIMAKA_ODK_USER" and "TAIMAKA_ODK_PW". They can be an a text file named ".taimaka_creds"
-and before running this script, put them in the environment with the following command:
-`. .taimaka_creds`
-"""
 
 import os
 import re
@@ -14,31 +8,25 @@ from datetime import date
 import gspread
 import numpy as np
 import pandas as pd
-import requests
+from dateutil.parser import parse
+from dateutil.relativedelta import relativedelta
+from dotenv import load_dotenv
 from gspread_dataframe import get_as_dataframe
 from pygrowup_erknet import Calculator
+from pyodk.client import Client
 from sqlalchemy import create_engine, text
+from memory_profiler import profile
 
-
-### TODO: Put sheets in DigitalOcean and remove gspread and gspread_dataframe,
-### because I don't think the scheduled job will be able to authenticate automatically
-### from the server (it requires a user to log in via a browser, right?)
-def load_google_sheet(url, worksheet_index=0):
-    sheet_id = re.search(r"/d/([a-zA-Z0-9-_]+)", url).group(1)
-    gc = gspread.service_account(filename="service_account.json")  # Ensure correct path
-    sh = gc.open_by_key(sheet_id)
-    worksheet = sh.get_worksheet(worksheet_index)
-    return get_as_dataframe(worksheet, evaluate_formulas=True, dtype=str).dropna(how="all")
-
-
-### End TODO
+load_dotenv()
 
 # --- PostgreSQL Connection ---
 DB_NAME = "cmam"
 DB_HOST = "taimaka-internal.org"
 DB_PORT = "5432"
-DB_USER = os.getenv("TAIMAKA_POSTGRES_USER")
-DB_PASSWORD = os.getenv("TAIMAKA_POSTGRES_PW")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+ODK_USERNAME = os.getenv("ODK_USERNAME")
+ODK_PASSWORD = os.getenv("ODK_PASSWORD")
 
 engine = create_engine(
     f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -51,12 +39,13 @@ def load_table(schema, table):
     return pd.read_sql(query, con=engine)
 
 
-current = load_table("data", "current")
-admit = load_table("data", "dict").drop(columns=["b_assignedtocct"], errors="ignore")
-weekly = load_table("data", "weekly")
+current_df = load_table("data", "current")
+current_pids = current_df["pid"].dropna().unique().tolist()
+admit = load_table("data", "dict_clean").drop(columns=["b_assignedtocct"], errors="ignore")
+weekly = load_table("data", "weekly_clean")
 mh = load_table("data", "mmh_dict")
 mh_pids = mh["pid"].dropna().unique().tolist()
-
+deaths_df = load_table("data", "deaths")
 relapse = load_table("data", "relapse_dict")
 relapse_pids = relapse["pid"].dropna().unique().tolist()
 
@@ -68,37 +57,32 @@ exclusions = (
     .reset_index(drop=True)
 )
 
-# --- Deaths ---
-deaths = load_table("data", "deaths")
-
 # odk_loader.py
 
-ODK_URL = "https://taimaka-internal.org:7443"
-ODK_USERNAME = os.getenv("TAIMAKA_ODK_USER")
-ODK_PASSWORD = os.getenv("TAIMAKA_ODK_PW")
+client = Client(config_path="odk.toml")
 
+
+ODK_URL = "https://taimaka-internal.org:7443"
 
 def load_admit_raw():
     # Get submissions from ODK Central
-    response = requests.get(
-        f"{ODK_URL}/v1/projects/9/forms/admit.scv/submissions.json",
-        auth=(ODK_USERNAME, ODK_PASSWORD),
-    )
-    response.raise_for_status()
-    data = response.json()
+    data = client.submissions.get_table(form_id="admit", project_id=9)
 
     # Flatten JSON data into a dataframe
-    df = pd.json_normalize(data)
+    df = pd.json_normalize(data["value"])
+    df = df.dropna(how="all", axis=1)  # Drop columns that are all NaN
+    df = df.rename(columns={k: k.split(".")[-1] for k in df.columns})
 
     # Strip "uuid:" prefix from `id`
-    df["id"] = df["id"].str.replace("^uuid:", "", regex=True)
+    df["uuid"] = df["instanceID"].str.replace("^uuid:", "", regex=True)
 
     return df
 
 
-admit_raw = load_admit_raw()
+admit_raw_df = load_admit_raw()
 
 # pid_assignment.py
+
 
 # pid_map = list of dictionaries with 'name', 'todate', and 'pid'
 manual_pid_assignments = [
@@ -191,7 +175,7 @@ manual_pid_assignments = [
     {"name": "", "todate": "", "pid": "24-9988"},  # From UUID match
 ]
 
-
+@profile
 def assign_pids(df, assignments):
     df["todate"] = pd.to_datetime(df["todate"], errors="coerce")
     df["pid"] = df["pid"].astype("string")
@@ -207,13 +191,12 @@ def assign_pids(df, assignments):
     return df
 
 
-admit_raw = assign_pids(admit_raw, manual_pid_assignments)
+admit_raw = assign_pids(admit_raw_df, manual_pid_assignments)
 
 
 # current_extension.py
 
-
-def extend_current(current_df, admit_raw_df):
+def extend_current(current, admit_raw_df):
     new_pids = [
         "23-9999",
         "23-9998",
@@ -363,9 +346,8 @@ def extend_current(current_df, admit_raw_df):
     )
 
     return pd.concat(
-        [current_df, add_current.drop(columns=["em_age", "todate"])], ignore_index=True
+        [current, add_current.drop(columns=["em_age", "todate"])], ignore_index=True
     )
-
 
 def extend_deaths(deaths_df):
     add_deaths = pd.DataFrame(
@@ -390,18 +372,15 @@ def extend_deaths(deaths_df):
 
 # Assuming you've already loaded `current`, `admit_raw`, `exclusions`, `deaths`...
 
+# from current_extension import extend_current, extend_exclusions, extend_deaths
 
-current = extend_current(current, admit_raw)
-deaths = extend_deaths(deaths)
-
-
-### TODO: extend_exclusions not defined yet
-exclusions = extend_exclusions(exclusions)
+current_df = extend_current(current_df, admit_raw_df)
+# exclusions = extend_exclusions(exclusions)
+deaths_df = extend_deaths(deaths_df)
 
 
 # merge_notes.py
 # make sure to have pip install gspread oauth2client pandas gspread_dataframe
-
 
 def merge_notes(current_df, exclusions_df, deaths_df, new_pids):
     df = current_df.merge(exclusions_df[["pid", "notes"]], on="pid", how="left").rename(
@@ -421,7 +400,6 @@ def merge_notes(current_df, exclusions_df, deaths_df, new_pids):
     )
 
     return df
-
 
 def add_rows_to_admit_raw(admit_raw_df):
     add_admit_raw = pd.DataFrame(
@@ -474,7 +452,6 @@ def add_rows_to_admit_raw(admit_raw_df):
     add_admit_raw["muac"] = add_admit_raw["muac"].astype(float)
 
     return pd.concat([admit_raw_df, add_admit_raw], ignore_index=True)
-
 
 def annotate_admit_raw(admit_raw_df, new_pids):
     imci_emergency = admit_raw_df[admit_raw_df["imci_emergency_otp"] == "true"]
@@ -530,12 +507,25 @@ def build_admit_processed(admit_raw_df, admit_df, new_pids, imci_pids):
 
 # itp_loader.py
 
+def load_google_sheet(url, worksheet_index=0):
+    # Extract the sheet ID from the URL
+    sheet_id = re.search(r"/d/([a-zA-Z0-9-_]+)", url).group(1)
 
-# -- Load 2023 --
+    # Authenticate with Google using google-auth (via gspread)
+    gc = gspread.service_account(filename="service_account.json")
+
+    # Open the sheet and get the specified worksheet
+    sh = gc.open_by_key(sheet_id)
+    worksheet = sh.get_worksheet(worksheet_index)
+
+    # Load as DataFrame
+    return get_as_dataframe(worksheet, evaluate_formulas=True, dtype=str).dropna(how="all")
+
+
+# Example usage
 itp_2023 = load_google_sheet(
     "https://docs.google.com/spreadsheets/d/1Pb_bGGaHRIyzwHhIBzebFqQhd-6HQttWKDeTvRR58-o/edit#gid=0"
 )
-
 # -- Clean 2023 --
 itp_2023_clean = itp_2023[itp_2023["Facility"].notna()].assign(
     itp=itp_2023["Facility"],
@@ -597,7 +587,6 @@ itp_2023_clean = itp_2023_clean.drop(
 
 # ------------- Repeat Process for 2024 and 2025 ---------------- #
 
-
 def clean_itp_roster(df, year):
     df["Pid"] = df["Pid"].replace("24--4534", "24-4534") if year == 2024 else df["Pid"]
 
@@ -615,7 +604,7 @@ def clean_itp_roster(df, year):
         outcome_date=pd.to_datetime(df["Outcome Date"], errors="coerce"),
         los_days=df["LOS"].astype(str),
         ref_w_pid=df["Referred with PID"],
-        case_notes=df[["Note", "...18", "Folder checked"]].astype(str).agg(", ".join, axis=1),
+        case_notes=df[["Note", "Folder checked"]].astype(str).agg(", ".join, axis=1),
     )
 
     # Clean up
@@ -652,7 +641,6 @@ def clean_itp_roster(df, year):
             "Referred with PID",
             "Note",
             "?prob",
-            "...18",
             "Name",
             "Facility",
             "OTP",
@@ -724,13 +712,12 @@ def clean_itp_final(df):
 
 itp_roster_clean = clean_itp_final(itp_roster)
 
+
 # admit_filter.py
-
-
 def clean_admit_raw(admit_raw_df):
     # Step 1: Filter by review_state and consent
     filtered = admit_raw_df[
-        (admit_raw_df["review_state"].isna() | (admit_raw_df["review_state"] != "rejected"))
+        (admit_raw_df["reviewState"].isna() | (admit_raw_df["reviewState"] != "rejected"))
         & (admit_raw_df["nophone_consent"].isna() | (admit_raw_df["nophone_consent"] != "false"))
         & (admit_raw_df["phone_consent"].isna() | (admit_raw_df["phone_consent"] != "false"))
     ].copy()
@@ -771,26 +758,25 @@ admit_raw_2, admit_pids = clean_admit_raw(admit_raw)
 
 # weekly_loader.py
 
-
 def load_weekly_raw():
-    response = requests.get(
-        f"{ODK_URL}/v1/projects/9/forms/weekly.scv/submissions.json",
-        auth=(ODK_USERNAME, ODK_PASSWORD),
-    )
-    response.raise_for_status()
-    data = response.json()
-    df = pd.json_normalize(data)
+    # Get submissions from ODK Central
+    data = client.submissions.get_table(form_id="weekly", project_id=9)
 
-    # Remove "uuid:" prefix from id
-    df["id"] = df["id"].str.replace("^uuid:", "", regex=True)
+    # Flatten JSON data into a dataframe
+    df = pd.json_normalize(data["value"])
+    df = df.dropna(how="all", axis=1)  # Drop columns that are all NaN
+    df = df.rename(columns={k: k.split(".")[-1] for k in df.columns})
+
+    # Strip "uuid:" prefix from `id`
+    df["uuid"] = df["instanceID"].str.replace("^uuid:", "", regex=True)
+
     return df
 
-
-def clean_weekly_raw(weekly_df, admit_pids):
-    df = weekly_df.copy()
+def clean_weekly_raw(weekly_raw, admit_pids):
+    df = weekly_raw.copy()
 
     df = df[
-        (df["review_state"].isna() | (df["review_state"] != "rejected"))
+        (df["reviewState"].isna() | (df["reviewState"] != "rejected"))
         & (df["phone_consent"].isna() | (df["phone_consent"] != "false"))
         & (df["pid"].isin(admit_pids))
     ].copy()
@@ -808,6 +794,22 @@ weekly_raw = load_weekly_raw()
 weekly_raw_2 = clean_weekly_raw(weekly_raw, admit_pids)
 
 
+def load_relapse_raw():
+    # Get submissions from ODK Central
+    data = client.submissions.get_table(form_id="relapse", project_id=12)
+
+    # Flatten JSON data into a dataframe
+    df = pd.json_normalize(data["value"])
+    df = df.dropna(how="all", axis=1)  # Drop columns that are all NaN
+    df = df.rename(columns={k: k.split(".")[-1] for k in df.columns})
+
+    # Strip "uuid:" prefix from `id`
+    df["uuid"] = df["instanceID"].str.replace("^uuid:", "", regex=True)
+
+    return df
+
+relapse_raw_df = load_relapse_raw()
+
 def clean_relapse_raw(relapse_raw_df, relapse_pids, current_pids):
     df = relapse_raw_df[
         (relapse_raw_df["pid"].isin(relapse_pids))
@@ -817,7 +819,7 @@ def clean_relapse_raw(relapse_raw_df, relapse_pids, current_pids):
             | (relapse_raw_df["set_final_consent"] != "refused")
         )
         & ((relapse_raw_df["c_consent"].isna()) | (relapse_raw_df["c_consent"] != "refused"))
-        & ((relapse_raw_df["review_state"].isna()) | (relapse_raw_df["review_state"] != "rejected"))
+        & ((relapse_raw_df["reviewState"].isna()) | (relapse_raw_df["reviewState"] != "rejected"))
     ].copy()
 
     # Drop all sensitive columns
@@ -836,13 +838,28 @@ def clean_relapse_raw(relapse_raw_df, relapse_pids, current_pids):
 
     return df
 
+def load_mh_raw():
+    # Get submissions from ODK Central
+    data = client.submissions.get_table(form_id="mmhs", project_id=11)
+
+    # Flatten JSON data into a dataframe
+    df = pd.json_normalize(data["value"])
+    df = df.dropna(how="all", axis=1)  # Drop columns that are all NaN
+    df = df.rename(columns={k: k.split(".")[-1] for k in df.columns})
+
+    # Strip "uuid:" prefix from `id`
+    df["uuid"] = df["instanceID"].str.replace("^uuid:", "", regex=True)
+
+    return df
+
+mh_raw_df = load_mh_raw()
 
 def clean_mh_raw(mh_raw_df, mh_pids, current_pids):
     df = mh_raw_df[
         (mh_raw_df["session"] == "0")
         & (mh_raw_df["study_consent"] != "false")
         & (mh_raw_df["ineligible"] != "false")
-        & (mh_raw_df["review_state"].isna() | (mh_raw_df["review_state"] != "rejected"))
+        & (mh_raw_df["reviewState"].isna() | (mh_raw_df["reviewState"] != "rejected"))
         & (mh_raw_df["pid"].isin(mh_pids))
         & (mh_raw_df["pid"].isin(current_pids))
     ].copy()
@@ -865,8 +882,7 @@ def clean_mh_raw(mh_raw_df, mh_pids, current_pids):
 
     return df
 
-
-def finalize_datasets(current_df, admit_df, weekly_df, itp_roster_df, current_pids):
+def finalize_datasets(current_df, admit, weekly, itp_roster_df, current_pids):
     # Process `current`
     current_processed = current_df.copy()
     current_processed["age_on_20250315"] = current_processed["age"]
@@ -874,7 +890,7 @@ def finalize_datasets(current_df, admit_df, weekly_df, itp_roster_df, current_pi
     current_processed = current_processed.drop(columns=["phone", "age"], errors="ignore")
 
     # Process `admit`
-    admit_processed = admit_df.copy()
+    admit_processed = admit.copy()
     admit_processed["b_has_phone_number"] = admit_processed["phone"].notna()
     admit_processed = admit_processed.drop(
         columns=[
@@ -891,7 +907,7 @@ def finalize_datasets(current_df, admit_df, weekly_df, itp_roster_df, current_pi
     admit_processed = admit_processed[admit_processed["pid"].isin(current_pids)]
 
     # Process `weekly`
-    weekly_processed = weekly_df.copy()
+    weekly_processed = weekly.copy()
     weekly_processed["b_added_phone_number"] = weekly_processed["phone"].notna()
     weekly_processed = weekly_processed.drop(columns=["phone"], errors="ignore")
     weekly_processed = weekly_processed[weekly_processed["pid"].isin(current_pids)]
@@ -905,16 +921,14 @@ def finalize_datasets(current_df, admit_df, weekly_df, itp_roster_df, current_pi
     return current_processed, admit_processed, weekly_processed, itp_clean
 
 
-relapse_raw_2 = clean_relapse_raw(relapse_raw, relapse_pids, current_pids)
-mh_raw_2 = clean_mh_raw(mh_raw, mh_pids, current_pids)
+relapse_raw_2 = clean_relapse_raw(relapse_raw_df, relapse_pids, current_pids)
+mh_raw_2 = clean_mh_raw(mh_raw_df, mh_pids, current_pids)
 current_processed, admit_processed, weekly_processed, itp_roster_clean = finalize_datasets(
-    current, admit, weekly_raw_2, itp_roster_clean, current_pids
+    current_df, admit, weekly, itp_roster_clean, current_pids
 )
 
-# Initialize the z-score calculator with WHO 2006 growth standards
-### TODO: "who2006" is not available, but I think WHO is the default. Probably can remove
-calc = Calculator(ref=who2006)
 
+calc = Calculator()
 
 def prepare_zscore_inputs(
     df,
@@ -925,90 +939,95 @@ def prepare_zscore_inputs(
     sex_column="sex",
 ):
     df = df.copy()
-
+    df["weight_col"] = pd.to_numeric(df[weight_column], errors="coerce")
+    df["height_col"] = pd.to_numeric(df[height_column], errors="coerce")
     df["age"] = pd.to_numeric(df[age_column], errors="coerce")
     df["age_zscore"] = df["age"] * (365.25 / 12)
 
-    # Standing position: height = 1, length = 2, other = 3
     df["standing"] = np.select(
         [df[domhl_column] == "height", df[domhl_column] == "length"], [1, 2], default=3
     )
 
-    # Numeric sex: male = 1, female = 2, else NA
-    df["sex_num"] = np.select(
-        [df[sex_column] == "male", df[sex_column] == "female"], [1, 2], default=np.nan
+    # Safe conversion: lowercase, strip whitespace, map known values, else np.nan
+    df["sex_str"] = (
+        df[sex_column]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .map({"male": "M", "female": "F"})
     )
 
     return df
 
-
-def add_zscores(
-    df,
-    weight_col="weight",
-    height_col="finalhl",
-    age_col="age_zscore",
-    sex_col="sex_num",
-    standing_col="standing",
-):
+def add_zscores(df, weight_col="weight", height_col="finalhl", age_col="age", sex_col="sex_str", source_name=""):
     df = df.copy()
 
-    # WHO expects age in days, weight in kg, height in cm
-    def safe_calc(row, index):
+    df[weight_col] = pd.to_numeric(df[weight_col], errors="coerce")
+    df[height_col] = pd.to_numeric(df[height_col], errors="coerce")
+    df[age_col] = pd.to_numeric(df[age_col], errors="coerce")
+
+    print(f"Sample values from {source_name} before z-score calc:")
+    print(df[[age_col, sex_col, weight_col, height_col]].dropna().head(10))
+
+    def safe_calc(func, row, *args):
         try:
-            if index == "wfh":
-                return calc.zscore(
-                    "wfh",
-                    sex=int(row[sex_col]),
-                    weight=float(row[weight_col]),
-                    height=float(row[height_col]),
-                    standing=int(row[standing_col]),
-                )
-            elif index == "hfa":
-                return calc.zscore(
-                    "hfa",
-                    sex=int(row[sex_col]),
-                    height=float(row[height_col]),
-                    age_days=float(row[age_col]),
-                )
-            elif index == "wfa":
-                return calc.zscore(
-                    "wfa",
-                    sex=int(row[sex_col]),
-                    weight=float(row[weight_col]),
-                    age_days=float(row[age_col]),
-                )
-        except:
+            return func(*args)
+        except Exception as e:
+            print(f"[{source_name}] Skipped {func.__name__}: uuid={row.get('uuid')}, age={row[age_col]}, sex={row[sex_col]}, "
+                  f"weight={row[weight_col]}, height={row[height_col]} — {type(e).__name__}: {e}")
             return np.nan
 
-    df["wfhz"] = df.apply(lambda row: safe_calc(row, "wfh"), axis=1)
-    df["hfaz"] = df.apply(lambda row: safe_calc(row, "hfa"), axis=1)
-    df["wfaz"] = df.apply(lambda row: safe_calc(row, "wfa"), axis=1)
+    df["wfaz"] = df.apply(
+        lambda row: safe_calc(calc.wfa, row, row[weight_col], row[age_col], row[sex_col])
+        if pd.notnull(row[weight_col]) and pd.notnull(row[age_col]) and pd.notnull(row[sex_col]) and row[age_col] <= 60
+        else np.nan,
+        axis=1
+    )
+
+    df["hfaz"] = df.apply(
+        lambda row: safe_calc(calc.lhfa, row, row[height_col], row[age_col], row[sex_col], row.get("standing", 1) == 2)
+        if pd.notnull(row[height_col]) and pd.notnull(row[age_col]) and pd.notnull(row[sex_col])
+        else np.nan,
+        axis=1
+    )
+
+    df["wfhz"] = df.apply(
+        lambda row: safe_calc(calc.wfh, row, row[weight_col], row[sex_col], row[height_col], row.get("standing", 1) == 2)
+        if pd.notnull(row[weight_col]) and pd.notnull(row[height_col]) and pd.notnull(row[sex_col])
+        else np.nan,
+        axis=1
+    )
 
     return df
 
-
-# you'll need pip install pygrowup pandas numpy
-
-
 def add_deficiency_flags(df):
     df = df.copy()
+
+    # Coerce to numeric
+    df["muac"] = pd.to_numeric(df["muac"], errors="coerce")
+    df["wfhz"] = pd.to_numeric(df["wfhz"], errors="coerce")
+    df["hfaz"] = pd.to_numeric(df["hfaz"], errors="coerce")
+    df["wfaz"] = pd.to_numeric(df["wfaz"], errors="coerce")
+
     df["b_wast"] = np.where(
         (df["wfhz"] < -3) & (df["hfaz"] < -3),
         True,
         np.where(df[["wfhz", "hfaz"]].isnull().any(axis=1), np.nan, False),
     )
+
     df["b_muac_waz"] = np.where(
         (df["muac"] < 11.5) & (df["wfaz"] < -3),
         True,
         np.where(df[["muac", "wfaz"]].isnull().any(axis=1), np.nan, False),
     )
+
     df["b_muac_wfh"] = np.where(
         (df["muac"] < 11.5) & (df["wfhz"] < -3),
         True,
         np.where(df[["muac", "wfhz"]].isnull().any(axis=1), np.nan, False),
     )
-    return df
 
+    return df
 
 def add_breastfeeding_flags(df):
     df = df.copy()
@@ -1065,7 +1084,6 @@ def add_breastfeeding_flags(df):
 
     return df
 
-
 def add_season_flags(df, date_column):
     df = df.copy()
     df[date_column] = pd.to_datetime(df[date_column], errors="coerce")
@@ -1073,37 +1091,57 @@ def add_season_flags(df, date_column):
     df["rainy_season"] = df[date_column].dt.month.isin([5, 6, 7, 8, 9, 10])
     return df
 
-    # For admit_processed
+# === Apply to each dataset ===
 
-
-admit_processed = prepare_zscore_inputs(admit_processed)
-admit_processed = add_zscores(admit_processed)
+# admit_processed and weekly_processed
+admit_processed = prepare_zscore_inputs(
+    admit_processed,
+    age_column="enr_age",
+    height_column="finalhl",
+    domhl_column="domhl",
+    sex_column="sex"
+)
+admit_processed = add_zscores(admit_processed, source_name="admit_processed")
 admit_processed = add_deficiency_flags(admit_processed)
 admit_processed = add_season_flags(admit_processed, date_column="calcdate")
 
-# For weekly_processed
-weekly_processed = prepare_zscore_inputs(weekly_processed)
-weekly_processed = add_zscores(weekly_processed)
+
+
+weekly_processed = prepare_zscore_inputs(
+    weekly_processed,
+    age_column="wkl_age",
+    height_column="finalhl",
+    domhl_column="domhl",
+    sex_column="sex"
+)
+weekly_processed = add_zscores(weekly_processed, source_name="weekly_processed")
 weekly_processed = add_deficiency_flags(weekly_processed)
 weekly_processed = add_season_flags(weekly_processed, date_column="calcdate")
 
-# For admit_raw_2
+# admit_raw_2
 admit_raw_2 = prepare_zscore_inputs(
-    admit_raw_2, height_column="hl", domhl_column="direction_of_measure", sex_column="c_sex"
+    admit_raw_2,
+    age_column="age",
+    height_column="hl",
+    domhl_column="direction_of_measure",
+    sex_column="c_sex"
 )
-admit_raw_2 = add_zscores(admit_raw_2, height_col="hl")
+admit_raw_2 = add_zscores(admit_raw_2, height_col="hl", source_name="admit_raw")
 admit_raw_2 = add_deficiency_flags(admit_raw_2)
 admit_raw_2 = add_breastfeeding_flags(admit_raw_2)
 admit_raw_2 = add_season_flags(admit_raw_2, date_column="todate")
 
-# For weekly_raw_2
+# weekly_raw_2
 weekly_raw_2 = prepare_zscore_inputs(
-    weekly_raw_2, height_column="hl", domhl_column="direction_of_measure", sex_column="c_sex"
+    weekly_raw_2,
+    age_column="age",
+    height_column="hl",
+    domhl_column="direction_of_measure",
+    sex_column="c_sex"
 )
-weekly_raw_2 = add_zscores(weekly_raw_2, height_col="hl")
+weekly_raw_2 = add_zscores(weekly_raw_2, height_col="hl", source_name="weekly_raw")
 weekly_raw_2 = add_deficiency_flags(weekly_raw_2)
-weekly_raw_2 = add_breastfeeding_flags(weekly_raw_2)
 weekly_raw_2 = add_season_flags(weekly_raw_2, date_column="todate")
 
-# For current_processed
+# current_processed
 current_processed = add_season_flags(current_processed, date_column="status_date")
