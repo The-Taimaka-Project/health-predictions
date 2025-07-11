@@ -425,12 +425,12 @@ cg_relationship,What is the relationship of the caregiver to the child?,
 qmother_alive,Is the patient's mother alive?,
 qfather_alive,Is the patient's father alive?,
 check_anyphone,Are you sure? Does the caregiver know ANYONE who owns a phone?,
-phone_owner,Whose phone is this? It belongs to…,
+phone_owner,Whose phone is this? It belongs toÂ…,
 phone_owner_other,Who is this other person?,
 phone_owner_name,What is the owner of the phone's name?,
 phone_owner_samehh,Does the owner of the phone live in the same household as the caregiver?,
 phone_owner_samecomm,Does the owner of the phone live in the same settlement as the caregiver?,
-phone_consent,"During your participation in this program, you may receive free phone calls about your weekly appointments and the health of your child. The purpose of these phone calls is to research attendance and recovery at the nutrition clinic. If you provide a phone number, the research team will also have access to your child’s medical records, but they will be anonymized so that no information can be traced back to your child.
+phone_consent,"During your participation in this program, you may receive free phone calls about your weekly appointments and the health of your child. The purpose of these phone calls is to research attendance and recovery at the nutrition clinic. If you provide a phone number, the research team will also have access to your childÂ’s medical records, but they will be anonymized so that no information can be traced back to your child.
 
 If the phone number provided is not your own, the person who owns the phone may pick up these calls and learn that you have attended this health clinic and that your child is enrolled in this program. 
 
@@ -705,7 +705,7 @@ wkn_otherlang_text_weekly,Specify other. at nth most recent visit,
 wkn_otherstaff_weekly,What is your name? at nth most recent visit,
 wkn_override_conf_weekly,Are you sure you wish to override this decision? at nth most recent visit,
 wkn_patient_picture_weekly,"Take a picture of the child, with the child's upper torso and face clearly visible. See example: at nth most recent visit",
-wkn_phone_consent_weekly,"During your participation in this program, you may receive free phone calls about your weekly appointments and the health of your child. The purpose of these phone calls is to research attendance and recovery at the nutrition clinic. If you provide a phone number, the research team will also have access to your child’s medical records, but they will be anonymized so that no information can be traced back to your child.
+wkn_phone_consent_weekly,"During your participation in this program, you may receive free phone calls about your weekly appointments and the health of your child. The purpose of these phone calls is to research attendance and recovery at the nutrition clinic. If you provide a phone number, the research team will also have access to your childÂ’s medical records, but they will be anonymized so that no information can be traced back to your child.
 
 If the phone number provided is not your own, the person who owns the phone may pick up these calls and learn that you have attended this health clinic and that your child is enrolled in this program. 
 
@@ -716,7 +716,7 @@ wkn_phone_owner_name_weekly,What is the owner of the phone's name? at nth most r
 wkn_phone_owner_other_weekly,Who is this other person? at nth most recent visit,
 wkn_phone_owner_samecomm_weekly,Does the owner of the phone live in the same settlement as the caregiver? at nth most recent visit,
 wkn_phone_owner_samehh_weekly,Does the owner of the phone live in the same household as the caregiver? at nth most recent visit,
-wkn_phone_owner_weekly,Whose phone is this? It belongs to… at nth most recent visit,
+wkn_phone_owner_weekly,Whose phone is this? It belongs toÂ… at nth most recent visit,
 wkn_q_cgaccept_eref_weekly,Will the caregiver accept this referral and go to the ITP? at nth most recent visit,
 wkn_q_conf_override_eref_weekly,"Please confirm: YES, I spoke with a CLINICAL AUTHORITY (OTP or ITP supervisor/director) and they gave me approval to override this referral. at nth most recent visit",
 wkn_q_override_eref_weekly,Do you want to override this referral? at nth most recent visit,
@@ -1434,3 +1434,25 @@ emergency_admission,"calculated boolean (T/F) when a duplicate admittance form i
 wkn_autosite,ODK automatically assigned site for nth most recent visit,
 wkn_interpolated,"was this an artificially generated visit, (interpolating scalar values) between visits that span over a week?, for nth most recent visit",
 wkn_phoneowner,Phone owner for nth most recent visit,
+calc_dayssincevita,"min(decimal-date-time(today()) - decimal-date-time(${vd_vita1}, Date of Vitamin A - 1:), decimal-date-time(today()) - decimal-date-time(${vd_vita2} , Date of Vitamin A - 2:))",
+wkn_b_hadcat2complication,if they had any cat 2 complication at nth most recent week visit (9% do),
+dayssincevita,"min(decimal-date-time(today()) - decimal-date-time(${vd_vita1}, Date of Vitamin A - 1:), decimal-date-time(today()) - decimal-date-time(${vd_vita2} , Date of Vitamin A - 2:))",
+bfeed_age,"57% are 1 (true) (df[""age""] < 6) & (df[""b_curr_bfeed""] == ""true"") & (df[""alt_foods_bfeed""] == ""false""),
+            (df[""b_curr_bfeed""] == ""true"")
+            & (df[""age""] > 5)
+            & (df[""age""] < 24)
+            & df[""alt_foods_bfeed""].astype(str).str.contains(""food"", na=False),
+            (df[""age""] > 24),
+            (df[""b_curr_bfeed""].isnull()),",
+bfeed_exc,breast feeding exclusively,
+wkn_bfeed_age_weekly,"52% are 1 (true) (df[""age""] < 6) & (df[""b_curr_bfeed""] == ""true"") & (df[""alt_foods_bfeed""] == ""false""),
+            (df[""b_curr_bfeed""] == ""true"")
+            & (df[""age""] > 5)
+            & (df[""age""] < 24)
+            & df[""alt_foods_bfeed""].astype(str)",
+wkn_attachments_expected_weekly,are attachments present? At nth most recent visit,
+wkn_attachments_present_weekly,are attachments expected? At nth most recent visit,
+wkn_md_attachmentsexp,are attachments expected? At nth most recent visit,
+wkn_md_attachmentspres,are attachments present? At nth most recent visit,
+wkn_pt_photo_weekly,patient photo id at nth most recent visit,
+wkn_wkl_age,Child's age at a weekly visit (calculated from enr_age) at nth most recent visit,
